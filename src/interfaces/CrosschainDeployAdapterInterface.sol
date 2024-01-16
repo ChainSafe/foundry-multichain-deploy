@@ -8,7 +8,16 @@ pragma solidity 0.8.20;
  * @notice The original contract in question is intended to be used with the Bridge contract and Permissionless Generic Handler
  */
 interface ICrosschainDeployAdapter {
-    function deploy(bytes memory deployByteCode, bytes memory initData, bytes32 fortifiedSalt) internal;
+    function deploy(
+        bytes calldata deployBytecode,
+        uint256 gasLimit,
+        bytes32 salt,
+        bool isUniquePerChain,
+        bytes[] memory constructorArgs,
+        bytes[] memory initDatas,
+        uint8[] memory destinationDomainIDs,
+        uint256[] memory fees
+    ) external payable;
 
     function computeContractAddressForChain(address sender, bytes32 salt, bool isUniquePerChain)
         external

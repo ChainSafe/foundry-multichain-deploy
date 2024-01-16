@@ -10,7 +10,11 @@ pragma solidity 0.8.20;
 interface ICrosschainDeployAdapter {
     function deploy(bytes memory deployByteCode, bytes memory initData, bytes32 fortifiedSalt) internal {}
 
-    function computeContractAddressForChain() {}
+    function computeContractAddressForChain(address sender, bytes32 salt, bool isUniquePerChain)
+        external
+        view
+        returns (address)
+    {}
 
     function calculateDeployFee(
         bytes calldata deployBytecode,

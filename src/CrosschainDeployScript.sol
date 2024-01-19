@@ -43,7 +43,6 @@ contract CrosschainDeployScript is Script {
     ) public payable {
         // We use the contractString to get the bytecode of the contract,
         // reference: https://book.getfoundry.sh/cheatcodes/get-code
-        // FIXME: I get `type memory cannot be implicitly converted to calldata`
         bytes memory deployByteCode = vm.getCode(contractString);
         uint256[] memory fees = ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).calculateDeployFee(
             deployByteCode, gasLimit, salt, isUniquePerChain, constructorArgs, initDatas, destinationDomainIDs

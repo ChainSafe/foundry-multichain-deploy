@@ -47,7 +47,17 @@ contract CrosschainDeployScript is Script {
         uint256[] memory fees = ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).calculateDeployFee(
             deployByteCode, gasLimit, salt, isUniquePerChain, constructorArgs, initDatas, destinationDomainIDs
         );
-        ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).deploy(
+        uint256 totalFee;
+        uint256 feesArrayLength = fees.length;
+        for (uint256 i = 0; i < feesArrayLength;) {
+            uint256 fee = fees[i];
+            totalFee += fee;
+            unchecked {
+                ++i;
+            }
+        }
+
+        ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).deploy{value: totalFee}(
             deployByteCode, gasLimit, salt, isUniquePerChain, constructorArgs, initDatas, destinationDomainIDs, fees
         );
     }

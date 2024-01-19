@@ -9,7 +9,7 @@ import {ICrosschainDeployAdapter} from "./interfaces/CrosschainDeployAdapterInte
  * @title Provides a script to allow users to call the multichain deployment contract defined in `CrossChainDeployAdapter` from chainsafe/hardhat-plugin-multichain-deploy, passing it the contract bytecode and constructor arguments.
  * @author ChainSafe Systems
  */
-contract CrossChainDeployScript is Script {
+contract CrosschainDeployScript is Script {
     // this is the address of the original contract defined in chainsafe/hardhat-plugin-multichain-deploy
     // this address is the same across all chains
     address private constant CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS = 0x85d62AD850B322152BF4ad9147bfBF097DA42217;

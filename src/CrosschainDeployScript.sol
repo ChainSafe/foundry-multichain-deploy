@@ -37,6 +37,21 @@ contract CrosschainDeployScript is Script {
     }
 
     /**
+     * This function willl take the network, constructor args and initdata and
+     * save these to a mapping (what type?)
+     */
+    function addDeploymentTarget(string memory deploymentTarget) public {
+        uint8 deploymentTargetDomainId = _stringToDeploymentNetwork[deploymentTarget];
+        require(deploymentTargetDomainId != 0, "Invalid deployment target");
+        if ((deploymentTargetDomainId == 3) || (deploymentTargetDomainId == 4)) {
+            revert Unimplemented("That domain isn't implemented yet");
+        }
+
+        _deploymentNetworks.push(deploymentTargetDomainId);
+        // TODO: what else does this need to do?
+    }
+
+    /**
      * @notice this function takes in the contract string, in the form that
      * @notice `forge`'s `getCode` takes it, along with some other parameters and passes
      * @notice it along to the `deploy` function of the `CrossChainDeployAdapter`
@@ -87,30 +102,28 @@ contract CrosschainDeployScript is Script {
         );
     }
 
-    /**
-     * This function willl take the network, constructor args and initdata and
-     * save these to a mapping (what type?)
-     */
-    function addDeploymentTarget(string memory deploymentTarget) public {
-        uint8 deploymentTargetDomainId = _stringToDeploymentNetwork[deploymentTarget];
-        require(deploymentTargetDomainId != 0, "Invalid deployment target");
-        if ((deploymentTargetDomainId == 3) || (deploymentTargetDomainId == 4)) {
-            revert Unimplemented("That domain isn't implemented yet");
-        }
-
-        _deploymentNetworks.push(deploymentTargetDomainId);
-        // TODO: what else does this need to do?
-    }
-
     // what does this do?
     function encodeInitData() public {}
 
     // what does this do?
-    function generateSalt() public {}
-
-    // what does this do?
     function getDeploymentFee() public {}
 
-    // what does this do?
-    function computeAddressForChain() public {}
+    /**
+     * @notice Computes the address where the contract will be deployed on this chain.
+     *     @param sender Address that requested deploy.
+     *     @param salt Entropy for contract address generation.
+     *     @param isUniquePerChain True to have unique addresses on every chain.
+     *     @return Address where the contract will be deployed on this chain.
+     */
+    function computeAddressForChain(address sender, bytes32 salt, bool isUniquePerChain)
+        external
+        view
+        returns (address)
+    {
+        // QUESTION: *is* this a view? It's calling another contract, isn't it?
+
+        return ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).computeContractAddressForChain(
+            sender, salt, isUniquePerChain
+        );
+    }
 }

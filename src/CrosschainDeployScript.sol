@@ -35,8 +35,6 @@ contract CrosschainDeployScript is Script {
     constructor() {
         _stringToDeploymentNetwork["goerli"] = 1;
         _stringToDeploymentNetwork["sepolia"] = 2;
-        _stringToDeploymentNetwork["rhala"] = 3; // unimplemented as of today;
-        _stringToDeploymentNetwork["base-goerli"] = 4; // unimplemented as of today;
         _stringToDeploymentNetwork["cronos-testnet"] = 5;
         _stringToDeploymentNetwork["holesky"] = 6;
         _stringToDeploymentNetwork["mumbai"] = 7;

@@ -14,14 +14,18 @@ contract CrosschainDeployScript is Script {
     // this address is the same across all chains
     address private constant CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS = 0x85d62AD850B322152BF4ad9147bfBF097DA42217;
 
-    // given a string, obtain the domain ID;
-    // https://www.notion.so/chainsafe/Testnet-deployment-0483991cf1ac481593d37baf8d48712a
-
     error Unimplemented(string message);
 
+    // given a string, obtain the domain ID;
+    // https://www.notion.so/chainsafe/Testnet-deployment-0483991cf1ac481593d37baf8d48712a
     mapping(string => uint8) private _stringToDeploymentNetwork;
+
+    // given the domain ID, get the constructorArgs.
+    mapping(uint8 => bytes[]) private _domainIdToConstructorArgs;
+    // given the domain ID, get the initData.
+    mapping(uint8 => bytes[]) private _domainIdToInitDatas;
     // store the domain IDs
-    uint8[] private _deploymentNetworks;
+    uint8[] private _domainIds;
 
     constructor() {
         _stringToDeploymentNetwork["goerli"] = 1;
@@ -40,15 +44,17 @@ contract CrosschainDeployScript is Script {
      * This function willl take the network, constructor args and initdata and
      * save these to a mapping (what type?)
      */
-    function addDeploymentTarget(string memory deploymentTarget) public {
+    function addDeploymentTarget(string memory deploymentTarget, bytes memory _constructorArgs, bytes memory _initData)
+        public
+    {
         uint8 deploymentTargetDomainId = _stringToDeploymentNetwork[deploymentTarget];
         require(deploymentTargetDomainId != 0, "Invalid deployment target");
         if ((deploymentTargetDomainId == 3) || (deploymentTargetDomainId == 4)) {
             revert Unimplemented("That domain isn't implemented yet");
         }
-
-        _deploymentNetworks.push(deploymentTargetDomainId);
-        // TODO: what else does this need to do?
+        _domainIds.push(deploymentTargetDomainId);
+        _domainIdToConstructorArgs[deploymentTargetDomainId] = _constructorArgs;
+        _domainIdToInitDatas[deploymentTargetDomainId] = _initData;
     }
 
     /**
@@ -60,45 +66,47 @@ contract CrosschainDeployScript is Script {
      * @param gasLimit Contract deploy and init gas.
      * @param salt Entropy for contract address generation.
      * @param isUniquePerChain True to have unique addresses on every chain.
-     * @param constructorArgs Bytes to add to the deployBytecode, or empty, one per chain.
-     * @param initDatas Bytes to send to the contract after deployment, or empty, one per chain.
-     *
      *   Users call this function and pass only the function call string as
      *   `MyContract.sol:MyContract`. The function call string is then parsed
      *   and the `callData` and `bytesCode` are extracted from it.
      *   and the contract is deployed on the other chains.
      */
-    function deploy(
-        string calldata contractString,
-        uint256 gasLimit,
-        bytes32 salt,
-        bool isUniquePerChain,
-        bytes[] memory constructorArgs,
-        bytes[] memory initDatas
-    )
+    function deploy(string calldata contractString, uint256 gasLimit, bytes32 salt, bool isUniquePerChain)
         // uint8[] memory destinationDomainIDs
         public
         payable
     {
-        require(_deploymentNetworks.length > 0, "Need to add deployment targets. Use `addDeploymentTarget` first");
+        // check that the user has added deployment networks by calling `addDeploymentTarget`
+        uint256 deploymentNetworksCount = _domainIds.length;
+        require(deploymentNetworksCount > 0, "Need to add deployment targets. Use `addDeploymentTarget` first");
         // We use the contractString to get the bytecode of the contract,
         // reference: https://book.getfoundry.sh/cheatcodes/get-code
         bytes memory deployByteCode = vm.getCode(contractString);
-        uint256[] memory fees = ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).calculateDeployFee(
-            deployByteCode, gasLimit, salt, isUniquePerChain, constructorArgs, initDatas, _deploymentNetworks
-        );
-        uint256 totalFee;
-        uint256 feesArrayLength = fees.length;
-        for (uint256 i = 0; i < feesArrayLength;) {
-            uint256 fee = fees[i];
-            totalFee += fee;
+        // compile arrays of constructor args and initDatas
+        bytes[] memory constructorArgs;
+        bytes[] memory initDatas;
+        for (uint256 i = 0; i < deploymentNetworksCount;) {
+            uint8 domainId = _domainIds[i];
+            constructorArgs.push(_domainIdToConstructorArgs[domainId]);
+            initDatas.push(_domainIdToInitDatas[domainId]);
             unchecked {
                 ++i;
             }
         }
-
+        uint256[] memory fees = ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).calculateDeployFee(
+            deployByteCode, gasLimit, salt, isUniquePerChain, constructorArgs, initDatas, _domainIds
+        );
+        uint256 totalFee;
+        uint256 feesArrayLength = fees.length;
+        for (uint256 j = 0; j < feesArrayLength;) {
+            uint256 fee = fees[j];
+            totalFee += fee;
+            unchecked {
+                ++j;
+            }
+        }
         ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).deploy{value: totalFee}(
-            deployByteCode, gasLimit, salt, isUniquePerChain, constructorArgs, initDatas, _deploymentNetworks, fees
+            deployByteCode, gasLimit, salt, isUniquePerChain, constructorArgs, initDatas, _domainIds, fees
         );
     }
 
@@ -106,7 +114,7 @@ contract CrosschainDeployScript is Script {
     function encodeInitData() public {}
 
     // what does this do?
-    function getDeploymentFee() public {}
+    function calculateDeploymentFee() public {}
 
     /**
      * @notice Computes the address where the contract will be deployed on this chain.
@@ -120,8 +128,6 @@ contract CrosschainDeployScript is Script {
         view
         returns (address)
     {
-        // QUESTION: *is* this a view? It's calling another contract, isn't it?
-
         return ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).computeContractAddressForChain(
             sender, salt, isUniquePerChain
         );

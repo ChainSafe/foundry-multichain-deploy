@@ -17,6 +17,8 @@ contract CrosschainDeployScript is Script {
     // given a string, obtain the domain ID;
     // https://www.notion.so/chainsafe/Testnet-deployment-0483991cf1ac481593d37baf8d48712a
 
+    error Unimplemented(string message);
+
     mapping(string => uint8) private _stringToDeploymentNetwork;
     // store the domain IDs
     uint8[] private _deploymentNetworks;
@@ -45,7 +47,6 @@ contract CrosschainDeployScript is Script {
      * @param isUniquePerChain True to have unique addresses on every chain.
      * @param constructorArgs Bytes to add to the deployBytecode, or empty, one per chain.
      * @param initDatas Bytes to send to the contract after deployment, or empty, one per chain.
-     * @param destinationDomainIDs Sygma Domain IDs of target chains.
      *
      *   Users call this function and pass only the function call string as
      *   `MyContract.sol:MyContract`. The function call string is then parsed
@@ -64,7 +65,7 @@ contract CrosschainDeployScript is Script {
         public
         payable
     {
-        require(deploymentNetworks.length > 0, "Need to add deployment targets. Use `addDeploymentTarget` first");
+        require(_deploymentNetworks.length > 0, "Need to add deployment targets. Use `addDeploymentTarget` first");
         // We use the contractString to get the bytecode of the contract,
         // reference: https://book.getfoundry.sh/cheatcodes/get-code
         bytes memory deployByteCode = vm.getCode(contractString);
@@ -90,22 +91,26 @@ contract CrosschainDeployScript is Script {
      * This function willl take the network, constructor args and initdata and
      * save these to a mapping (what type?)
      */
-    function addDeploymentTarget(string deploymentTarget) public {
+    function addDeploymentTarget(string memory deploymentTarget) public {
         uint8 deploymentTargetDomainId = _stringToDeploymentNetwork[deploymentTarget];
         require(deploymentTargetDomainId != 0, "Invalid deployment target");
+        if ((deploymentTargetDomainId == 3) || (deploymentTargetDomainId == 4)) {
+            revert Unimplemented("That domain isn't implemented yet");
+        }
+
         _deploymentNetworks.push(deploymentTargetDomainId);
         // TODO: what else does this need to do?
     }
 
     // what does this do?
-    function encodeInitData() {}
+    function encodeInitData() public {}
 
     // what does this do?
-    function generateSalt() {}
+    function generateSalt() public {}
 
     // what does this do?
-    function getDeploymentFee() {}
+    function getDeploymentFee() public {}
 
     // what does this do?
-    function computeAddressForChain() {}
+    function computeAddressForChain() public {}
 }

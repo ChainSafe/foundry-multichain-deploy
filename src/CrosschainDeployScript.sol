@@ -14,18 +14,23 @@ contract CrosschainDeployScript is Script {
     // this address is the same across all chains
     address private constant CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS = 0x85d62AD850B322152BF4ad9147bfBF097DA42217;
 
-    error Unimplemented(string message);
+    error Unsupported(string message);
 
     // given a string, obtain the domain ID;
     // https://www.notion.so/chainsafe/Testnet-deployment-0483991cf1ac481593d37baf8d48712a
     mapping(string => uint8) private _stringToDeploymentNetwork;
 
-    // given the domain ID, get the constructorArgs.
-    mapping(uint8 => bytes[]) private _domainIdToConstructorArgs;
-    // given the domain ID, get the initData.
-    mapping(uint8 => bytes[]) private _domainIdToInitDatas;
+    // NOTE: All three of these need to be stored in the same order since they've
+    //      a shared index. Storing them in a mapping isn't gas-efficient since I'd
+    //      have to loop over these to build these arrays later, and that would not
+    //      translate to a `bytes[] memory` object, which is what the contract method needs.
+    //      Explicit conversion is a waste of gas.
     // store the domain IDs
     uint8[] private _domainIds;
+    // store the constructor args.
+    bytes[] private _constructorArgs;
+    // store the init datas;
+    bytes[] private _initDatas;
 
     constructor() {
         _stringToDeploymentNetwork["goerli"] = 1;
@@ -44,17 +49,17 @@ contract CrosschainDeployScript is Script {
      * This function willl take the network, constructor args and initdata and
      * save these to a mapping (what type?)
      */
-    function addDeploymentTarget(string memory deploymentTarget, bytes memory _constructorArgs, bytes memory _initData)
+    function addDeploymentTarget(string memory deploymentTarget, bytes memory constructorArgs, bytes memory initData)
         public
     {
         uint8 deploymentTargetDomainId = _stringToDeploymentNetwork[deploymentTarget];
         require(deploymentTargetDomainId != 0, "Invalid deployment target");
         if ((deploymentTargetDomainId == 3) || (deploymentTargetDomainId == 4)) {
-            revert Unimplemented("That domain isn't implemented yet");
+            revert Unsupported("That domain isn't supported");
         }
         _domainIds.push(deploymentTargetDomainId);
-        _domainIdToConstructorArgs[deploymentTargetDomainId] = _constructorArgs;
-        _domainIdToInitDatas[deploymentTargetDomainId] = _initData;
+        _constructorArgs.push(constructorArgs);
+        _initDatas.push(initData);
     }
 
     /**
@@ -82,19 +87,8 @@ contract CrosschainDeployScript is Script {
         // We use the contractString to get the bytecode of the contract,
         // reference: https://book.getfoundry.sh/cheatcodes/get-code
         bytes memory deployByteCode = vm.getCode(contractString);
-        // compile arrays of constructor args and initDatas
-        bytes[] memory constructorArgs;
-        bytes[] memory initDatas;
-        for (uint256 i = 0; i < deploymentNetworksCount;) {
-            uint8 domainId = _domainIds[i];
-            constructorArgs.push(_domainIdToConstructorArgs[domainId]);
-            initDatas.push(_domainIdToInitDatas[domainId]);
-            unchecked {
-                ++i;
-            }
-        }
         uint256[] memory fees = ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).calculateDeployFee(
-            deployByteCode, gasLimit, salt, isUniquePerChain, constructorArgs, initDatas, _domainIds
+            deployByteCode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds
         );
         uint256 totalFee;
         uint256 feesArrayLength = fees.length;
@@ -106,7 +100,7 @@ contract CrosschainDeployScript is Script {
             }
         }
         ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).deploy{value: totalFee}(
-            deployByteCode, gasLimit, salt, isUniquePerChain, constructorArgs, initDatas, _domainIds, fees
+            deployByteCode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds, fees
         );
     }
 

@@ -14,9 +14,14 @@ contract CrosschainDeployScript is Script {
     // this address is the same across all chains
     address private constant CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS = 0x85d62AD850B322152BF4ad9147bfBF097DA42217;
 
+    struct NetworkIds {
+        uint8 InternalDomainId;
+        uint256 ChainId;
+    }
+
     // given a string, obtain the domain ID;
     // https://www.notion.so/chainsafe/Testnet-deployment-0483991cf1ac481593d37baf8d48712a
-    mapping(string => uint8) private _stringToDeploymentNetwork;
+    mapping(string => NetworkIds) private _stringToNetworkIds;
 
     // NOTE: All three of these need to be stored in the same order since they've
     //      a shared index. Storing them in a mapping isn't gas-efficient since I'd
@@ -29,18 +34,19 @@ contract CrosschainDeployScript is Script {
     bytes[] private _constructorArgs;
     // store the init datas;
     bytes[] private _initDatas;
+    // store the chain ids
+    uint256[] private _chainIds;
 
     uint8 private _randomCounter;
 
     constructor() {
-        _stringToDeploymentNetwork["goerli"] = 1;
-        _stringToDeploymentNetwork["sepolia"] = 2;
-        _stringToDeploymentNetwork["cronos-testnet"] = 5;
-        _stringToDeploymentNetwork["holesky"] = 6;
-        _stringToDeploymentNetwork["mumbai"] = 7;
-        _stringToDeploymentNetwork["arbitrum-sepolia"] = 8;
-        _stringToDeploymentNetwork["gnosis-chaido"] = 9;
-        _stringToDeploymentNetwork["holesky"] = 6;
+        _stringToNetworkIds["goerli"] = NetworkIds(1, 5);
+        _stringToNetworkIds["sepolia"] = NetworkIds(2, 11155111);
+        _stringToNetworkIds["cronos-testnet"] = NetworkIds(5, 338);
+        _stringToNetworkIds["holesky"] = NetworkIds(6, 17000);
+        _stringToNetworkIds["mumbai"] = NetworkIds(7, 80001);
+        _stringToNetworkIds["arbitrum-sepolia"] = NetworkIds(8, 421614);
+        _stringToNetworkIds["gnosis-chiado"] = NetworkIds(9, 10200);
     }
 
     /**
@@ -50,9 +56,12 @@ contract CrosschainDeployScript is Script {
     function addDeploymentTarget(string memory deploymentTarget, bytes memory constructorArgs, bytes memory initData)
         public
     {
-        uint8 deploymentTargetDomainId = _stringToDeploymentNetwork[deploymentTarget];
+        NetworkIds memory deploymentTargetNetworkIds = _stringToNetworkIds[deploymentTarget];
+        uint8 deploymentTargetDomainId = deploymentTargetNetworkIds.InternalDomainId;
         require(deploymentTargetDomainId != 0, "Invalid deployment target");
         _domainIds.push(deploymentTargetDomainId);
+        uint256 deploymentTargetChainId = deploymentTargetNetworkIds.ChainId;
+        _chainIds.push(deploymentTargetChainId);
         _constructorArgs.push(constructorArgs);
         _initDatas.push(initData);
     }
@@ -75,6 +84,7 @@ contract CrosschainDeployScript is Script {
         public
         payable
         hasDeploymentTargets
+        returns (address[] memory)
     {
         // We use the contractString to get the bytecode of the contract,
         // reference: https://book.getfoundry.sh/cheatcodes/get-code
@@ -85,16 +95,20 @@ contract CrosschainDeployScript is Script {
         );
         uint256 totalFee;
         uint256 feesArrayLength = fees.length;
-        for (uint256 j = 0; j < feesArrayLength;) {
+        for (uint256 j = 0; j < feesArrayLength; j++) {
             uint256 fee = fees[j];
             totalFee += fee;
-            unchecked {
-                ++j;
-            }
         }
         ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).deploy{value: totalFee}(
             deployByteCode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds, fees
         );
+        address[] memory contractAddresses = new address[](_chainIds.length);
+        for (uint256 k = 0; k < _chainIds.length; k++) {
+            address contractAddress = ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS)
+                .computeContractAddressForChain(msg.sender, salt, isUniquePerChain, _chainIds[k]);
+            contractAddresses[k] = contractAddress;
+        }
+        return contractAddresses;
     }
 
     // returns a pseudorandom bytes32
@@ -117,16 +131,17 @@ contract CrosschainDeployScript is Script {
      *     @param sender Address that requested deploy.
      *     @param salt Entropy for contract address generation.
      *     @param isUniquePerChain True to have unique addresses on every chain.
+     *     @param chainId the ID of the chain on which to deploy the contract
      *     @return Address where the contract will be deployed on this chain.
      */
 
-    function computeAddressForChain(address sender, bytes32 salt, bool isUniquePerChain)
+    function computeAddressForChain(address sender, bytes32 salt, bool isUniquePerChain, uint256 chainId)
         external
         view
         returns (address)
     {
         return ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).computeContractAddressForChain(
-            sender, salt, isUniquePerChain
+            sender, salt, isUniquePerChain, chainId
         );
     }
 }

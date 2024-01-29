@@ -19,7 +19,7 @@ interface ICrosschainDeployAdapter {
         uint256[] memory fees
     ) external payable;
 
-    function computeContractAddressForChain(address sender, bytes32 salt, bool isUniquePerChain)
+    function computeContractAddressForChain(address sender, bytes32 salt, bool isUniquePerChain, uint256 chainId)
         external
         view
         returns (address);

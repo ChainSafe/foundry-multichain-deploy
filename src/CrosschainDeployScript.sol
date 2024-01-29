@@ -98,7 +98,8 @@ contract CrosschainDeployScript is Script {
     }
 
     // returns a pseudorandom bytes32
-    function generateSalt() public view returns (bytes32) {
+    function generateSalt() public returns (bytes32) {
+        _randomCounter++;
         return keccak256(abi.encodePacked(block.prevrandao, block.timestamp, msg.sender, _randomCounter));
     }
 

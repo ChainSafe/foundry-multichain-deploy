@@ -64,14 +64,13 @@ contract CrosschainDeployScript is Script {
      * @notice contract.
      * @param contractString Contract name in the form of `ContractFile.sol`, if the name of the contract and the file are the same, or `ContractFile.sol:ContractName` if they are different.
      * @param gasLimit Contract deploy and init gas.
-     * @param salt Entropy for contract address generation.
      * @param isUniquePerChain True to have unique addresses on every chain.
      *   Users call this function and pass only the function call string as
      *   `MyContract.sol:MyContract`. The function call string is then parsed
      *   and the `callData` and `bytesCode` are extracted from it.
      *   and the contract is deployed on the other chains.
      */
-    function deploy(string calldata contractString, uint256 gasLimit, bytes32 salt, bool isUniquePerChain)
+    function deploy(string calldata contractString, uint256 gasLimit, bool isUniquePerChain)
         // uint8[] memory destinationDomainIDs
         public
         payable
@@ -80,6 +79,7 @@ contract CrosschainDeployScript is Script {
         // We use the contractString to get the bytecode of the contract,
         // reference: https://book.getfoundry.sh/cheatcodes/get-code
         bytes memory deployByteCode = vm.getCode(contractString);
+        bytes32 salt = generateSalt();
         uint256[] memory fees = ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).calculateDeployFee(
             deployByteCode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds
         );

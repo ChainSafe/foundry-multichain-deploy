@@ -14,8 +14,6 @@ contract CrosschainDeployScript is Script {
     // this address is the same across all chains
     address private constant CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS = 0x85d62AD850B322152BF4ad9147bfBF097DA42217;
 
-    error Unsupported(string message);
-
     // given a string, obtain the domain ID;
     // https://www.notion.so/chainsafe/Testnet-deployment-0483991cf1ac481593d37baf8d48712a
     mapping(string => uint8) private _stringToDeploymentNetwork;
@@ -52,9 +50,6 @@ contract CrosschainDeployScript is Script {
     {
         uint8 deploymentTargetDomainId = _stringToDeploymentNetwork[deploymentTarget];
         require(deploymentTargetDomainId != 0, "Invalid deployment target");
-        if ((deploymentTargetDomainId == 3) || (deploymentTargetDomainId == 4)) {
-            revert Unsupported("That domain isn't supported");
-        }
         _domainIds.push(deploymentTargetDomainId);
         _constructorArgs.push(constructorArgs);
         _initDatas.push(initData);

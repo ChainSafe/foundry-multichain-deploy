@@ -30,6 +30,8 @@ contract CrosschainDeployScript is Script {
     // store the init datas;
     bytes[] private _initDatas;
 
+    uint8 private _randomCounter;
+
     constructor() {
         _stringToDeploymentNetwork["goerli"] = 1;
         _stringToDeploymentNetwork["sepolia"] = 2;
@@ -95,6 +97,11 @@ contract CrosschainDeployScript is Script {
         ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).deploy{value: totalFee}(
             deployByteCode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds, fees
         );
+    }
+
+    // returns a pseudorandom bytes32
+    function generateSalt() public view returns (bytes32) {
+        return keccak256(abi.encodePacked(block.prevrandao, block.timestamp, msg.sender, _randomCounter));
     }
 
     // what does this do?

@@ -75,10 +75,8 @@ contract CrosschainDeployScript is Script {
         // uint8[] memory destinationDomainIDs
         public
         payable
+        hasDeploymentTargets
     {
-        // check that the user has added deployment networks by calling `addDeploymentTarget`
-        uint256 deploymentNetworksCount = _domainIds.length;
-        require(deploymentNetworksCount > 0, "Need to add deployment targets. Use `addDeploymentTarget` first");
         // We use the contractString to get the bytecode of the contract,
         // reference: https://book.getfoundry.sh/cheatcodes/get-code
         bytes memory deployByteCode = vm.getCode(contractString);
@@ -107,9 +105,12 @@ contract CrosschainDeployScript is Script {
     // what does this do?
     function encodeInitData() public {}
 
-    // what does this do?
-    function calculateDeploymentFee() public {}
-
+    modifier hasDeploymentTargets() {
+        // check that the user has added deployment networks by calling `addDeploymentTarget`
+        uint256 deploymentNetworksCount = _domainIds.length;
+        require(deploymentNetworksCount > 0, "Need to add deployment targets. Use `addDeploymentTarget` first");
+        _;
+    }
     /**
      * @notice Computes the address where the contract will be deployed on this chain.
      *     @param sender Address that requested deploy.
@@ -117,6 +118,7 @@ contract CrosschainDeployScript is Script {
      *     @param isUniquePerChain True to have unique addresses on every chain.
      *     @return Address where the contract will be deployed on this chain.
      */
+
     function computeAddressForChain(address sender, bytes32 salt, bool isUniquePerChain)
         external
         view

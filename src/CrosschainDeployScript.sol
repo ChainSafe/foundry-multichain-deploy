@@ -108,6 +108,12 @@ contract CrosschainDeployScript is Script {
                 .computeContractAddressForChain(msg.sender, salt, isUniquePerChain, _chainIds[k]);
             contractAddresses[k] = contractAddress;
         }
+        // purge the deployment targets now.
+        _constructorArgs = [];
+        _initDatas = [];
+        _domainIds = [];
+        _chainIds = [];
+
         return contractAddresses;
     }
 

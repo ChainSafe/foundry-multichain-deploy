@@ -63,7 +63,7 @@ contract MockCrosschainDeployAdapter {
         bytes[] memory initDatas,
         uint8[] memory destinationDomainIDs
     ) external view returns (uint256[] memory fees) {
-        uint256[] memory fees = new uint256[](4);
+        fees = new uint256[](4);
         return fees;
     }
 }

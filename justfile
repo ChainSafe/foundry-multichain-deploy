@@ -8,6 +8,14 @@ build:
 fmt:
     forge fmt
 
+# run unit tests
+test:
+    forge test --no-match-test Integration
+
+# run integration tests, needs --fork-url
+integration-test:
+    forge test --mt Integration
+
 # watches the directory for changes and rebuilds.
 watch-build:
     forge build --watch

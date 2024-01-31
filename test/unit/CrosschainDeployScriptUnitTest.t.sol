@@ -7,7 +7,7 @@ import {CrosschainDeployScript} from "../../src/CrosschainDeployScript.sol";
 import {SimpleContract} from "../SimpleContract.sol";
 import {MockCrosschainDeployAdapter} from "../mocks/MockCrosschainDeployAdapter.sol";
 
-contract CrosschainDeployScriptTest is Test {
+contract CrosschainDeployScriptUnitTest is Test {
     address crosschainDeployAdapterAddress;
 
     // first start the dependent contract if we're on Anvil
@@ -19,12 +19,14 @@ contract CrosschainDeployScriptTest is Test {
     }
 
     // add a deployment target and deploy
-    function testAddDeploymentTarget() public {
+    function testAddDeploymentTargetAnvil() public {
         CrosschainDeployScript crosschainDeployScript = new CrosschainDeployScript("SimpleContract.sol:SimpleContract");
         bytes memory constructorArgs = "0x";
         bytes memory initData = "0x";
         crosschainDeployScript.setCrosschainDeployContractAddress(crosschainDeployAdapterAddress);
         crosschainDeployScript.addDeploymentTarget("sepolia", constructorArgs, initData);
-        crosschainDeployScript.deploy{value: 2}(50000, false);
+        uint256 fee = 0.0001 ether;
+        vm.deal(msg.sender, fee * 2);
+        crosschainDeployScript.deploy{value: fee}(50000, false);
     }
 }

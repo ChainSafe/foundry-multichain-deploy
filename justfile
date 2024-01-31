@@ -15,7 +15,8 @@ test:
 
 # run integration tests, needs --fork-url
 integration-test:
-    forge test --mt Integration --fork-url $INTEGRATION_FORK_URL --account $INTEGRATION_PRIVATE_KEY
+    set -x
+    forge test --mt Integration --fork-url $INTEGRATION_FORK_URL -vvv
 
 # watches the directory for changes and rebuilds.
 watch-build:

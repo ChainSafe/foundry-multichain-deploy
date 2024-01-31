@@ -1,6 +1,5 @@
 set shell:=["bash", "-uc"]
 
-
 # build the contracts
 build:
     forge build
@@ -9,10 +8,9 @@ build:
 fmt:
     forge fmt
 
-
-# watches the directory for changes and rebuilds. Needs `watchexec` - https://github.com/watchexec/watchexec. This is useful when developing contracts.
+# watches the directory for changes and rebuilds.
 watch-build:
-    watchexec just fmt build
+    forge build --watch
 
 deploy-anvil: build
     echo "Unimplemented" >&2

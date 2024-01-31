@@ -1,4 +1,5 @@
 set shell:=["bash", "-uc"]
+set dotenv-load
 
 # build the contracts
 build:
@@ -14,7 +15,7 @@ test:
 
 # run integration tests, needs --fork-url
 integration-test:
-    forge test --mt Integration
+    forge test --mt Integration --fork-url $INTEGRATION_FORK_URL --account $INTEGRATION_PRIVATE_KEY
 
 # watches the directory for changes and rebuilds.
 watch-build:

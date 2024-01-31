@@ -19,3 +19,5 @@ Cargo.lock
 # foundry-specific
 out/
 cache/
+
+.env

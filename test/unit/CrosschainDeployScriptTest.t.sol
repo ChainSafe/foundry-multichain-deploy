@@ -9,8 +9,8 @@ import {MockCrosschainDeployAdapter} from "../mocks/MockCrosschainDeployAdapter.
 
 contract CrosschainDeployScriptTest is Test {
     address crosschainDeployAdapterAddress;
-    // start the dependent contracts
 
+    // first start the dependent contract if we're on Anvil
     function setUp() public {
         vm.startBroadcast();
         MockCrosschainDeployAdapter mockCrosschainDeployAdapter = new MockCrosschainDeployAdapter();
@@ -18,14 +18,13 @@ contract CrosschainDeployScriptTest is Test {
         crosschainDeployAdapterAddress = address(mockCrosschainDeployAdapter);
     }
 
-    // add a deployment target
+    // add a deployment target and deploy
     function testAddDeploymentTarget() public {
         CrosschainDeployScript crosschainDeployScript = new CrosschainDeployScript("SimpleContract.sol:SimpleContract");
         bytes memory constructorArgs = "0x";
         bytes memory initData = "0x";
         crosschainDeployScript.setCrosschainDeployContractAddress(crosschainDeployAdapterAddress);
-
         crosschainDeployScript.addDeploymentTarget("sepolia", constructorArgs, initData);
-        crosschainDeployScript.deploy{value: 2}(500, false);
+        crosschainDeployScript.deploy{value: 2}(50000, false);
     }
 }

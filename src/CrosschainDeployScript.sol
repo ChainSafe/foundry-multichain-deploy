@@ -104,6 +104,7 @@ contract CrosschainDeployScript is Script {
             uint256 fee = fees[j];
             totalFee += fee;
         }
+        // TODO: Would I need to check if totalFee < msg.value since this `deploy` is itself payable and called with some fee?
         ICrosschainDeployAdapter(crosschainDeployContractAddress).deploy{value: totalFee}(
             deployByteCode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds, fees
         );

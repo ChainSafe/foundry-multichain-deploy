@@ -15,3 +15,7 @@ Cargo.lock
 
 # editor specifics
 .vscode/
+
+# foundry-specific
+out/
+cache/

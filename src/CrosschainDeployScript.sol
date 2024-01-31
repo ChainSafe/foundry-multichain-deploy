@@ -10,9 +10,11 @@ import {ICrosschainDeployAdapter} from "./interfaces/CrosschainDeployAdapterInte
  * @author ChainSafe Systems
  */
 contract CrosschainDeployScript is Script {
+    // this is the string for the contract name,
+    string public contractString;
     // this is the address of the original contract defined in chainsafe/hardhat-plugin-multichain-deploy
     // this address is the same across all chains
-    address private constant CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS = 0x85d62AD850B322152BF4ad9147bfBF097DA42217;
+    address private crosschainDeployContractAddress = 0x85d62AD850B322152BF4ad9147bfBF097DA42217;
 
     struct NetworkIds {
         uint8 InternalDomainId;
@@ -39,7 +41,12 @@ contract CrosschainDeployScript is Script {
 
     uint8 private _randomCounter;
 
-    constructor() {
+    /**
+     * @notice Constructor, takes the contract name.
+     * @param _contractString Contract name in the form of `ContractFile.sol`, if the name of the contract and the file are the same, or `ContractFile.sol:ContractName` if they are different.
+     */
+    constructor(string memory _contractString) {
+        contractString = _contractString;
         _stringToNetworkIds["goerli"] = NetworkIds(1, 5);
         _stringToNetworkIds["sepolia"] = NetworkIds(2, 11155111);
         _stringToNetworkIds["cronos-testnet"] = NetworkIds(5, 338);
@@ -50,8 +57,8 @@ contract CrosschainDeployScript is Script {
     }
 
     /**
-     * This function willl take the network, constructor args and initdata and
-     * save these to a mapping (what type?)
+     * This function will take the network, constructor args and initdata and
+     * save these to a mapping.
      */
     function addDeploymentTarget(string memory deploymentTarget, bytes memory constructorArgs, bytes memory initData)
         public
@@ -71,7 +78,6 @@ contract CrosschainDeployScript is Script {
      * @notice `forge`'s `getCode` takes it, along with some other parameters and passes
      * @notice it along to the `deploy` function of the `CrossChainDeployAdapter`
      * @notice contract.
-     * @param contractString Contract name in the form of `ContractFile.sol`, if the name of the contract and the file are the same, or `ContractFile.sol:ContractName` if they are different.
      * @param gasLimit Contract deploy and init gas.
      * @param isUniquePerChain True to have unique addresses on every chain.
      *   Users call this function and pass only the function call string as
@@ -79,7 +85,7 @@ contract CrosschainDeployScript is Script {
      *   and the `callData` and `bytesCode` are extracted from it.
      *   and the contract is deployed on the other chains.
      */
-    function deploy(string calldata contractString, uint256 gasLimit, bool isUniquePerChain)
+    function deploy(uint256 gasLimit, bool isUniquePerChain)
         public
         payable
         hasDeploymentNetworks
@@ -89,7 +95,7 @@ contract CrosschainDeployScript is Script {
         // reference: https://book.getfoundry.sh/cheatcodes/get-code
         bytes memory deployByteCode = vm.getCode(contractString);
         bytes32 salt = generateSalt();
-        uint256[] memory fees = ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).calculateDeployFee(
+        uint256[] memory fees = ICrosschainDeployAdapter(crosschainDeployContractAddress).calculateDeployFee(
             deployByteCode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds
         );
         uint256 totalFee;
@@ -98,12 +104,12 @@ contract CrosschainDeployScript is Script {
             uint256 fee = fees[j];
             totalFee += fee;
         }
-        ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).deploy{value: totalFee}(
+        ICrosschainDeployAdapter(crosschainDeployContractAddress).deploy{value: totalFee}(
             deployByteCode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds, fees
         );
         address[] memory contractAddresses = new address[](_chainIds.length);
         for (uint256 k = 0; k < _chainIds.length; k++) {
-            address contractAddress = ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS)
+            address contractAddress = ICrosschainDeployAdapter(crosschainDeployContractAddress)
                 .computeContractAddressForChain(msg.sender, salt, isUniquePerChain, _chainIds[k]);
             contractAddresses[k] = contractAddress;
         }
@@ -142,8 +148,16 @@ contract CrosschainDeployScript is Script {
         view
         returns (address)
     {
-        return ICrosschainDeployAdapter(CROSS_CHAIN_DEPLOY_CONTRACT_ADDRESS).computeContractAddressForChain(
+        return ICrosschainDeployAdapter(crosschainDeployContractAddress).computeContractAddressForChain(
             sender, salt, isUniquePerChain, chainId
         );
+    }
+
+    /**
+     * This is a function we only need for tests.
+     * TODO: Figure out a safer way of keeping this visible.
+     */
+    function setCrosschainDeployContractAddress(address _crosschainDeployContractAddress) public {
+        crosschainDeployContractAddress = _crosschainDeployContractAddress;
     }
 }

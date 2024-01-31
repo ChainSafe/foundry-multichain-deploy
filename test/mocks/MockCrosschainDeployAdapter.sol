@@ -1,13 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-
 pragma solidity 0.8.20;
 
-/**
- * @title Provides an interface to the CrosschainDeployAdapter from chainsafe/hardhat-plugin-multichain-deploy
- * @author ChainSafe Systems.
- * @notice The original contract in question is intended to be used with the Bridge contract and Permissionless Generic Handler
- */
-interface ICrosschainDeployAdapter {
+contract MockCrosschainDeployAdapter {
     /**
      * @notice Deposits to the Bridge contract using the PermissionlessGenericHandler,
      *     @notice to request contract deployments on other chains.
@@ -29,7 +23,9 @@ interface ICrosschainDeployAdapter {
         bytes[] memory initDatas,
         uint8[] memory destinationDomainIDs,
         uint256[] memory fees
-    ) external payable;
+    ) external payable {
+        // TODO: Fill this with something that mocks it.
+    }
 
     /**
      * @notice Computes the address where the contract will be deployed on specified chain.
@@ -42,7 +38,11 @@ interface ICrosschainDeployAdapter {
     function computeContractAddressForChain(address sender, bytes32 salt, bool isUniquePerChain, uint256 chainId)
         external
         view
-        returns (address);
+        returns (address)
+    {
+        address newAddress;
+        return newAddress;
+    }
 
     /**
      * @notice Returns total amount of native currency needed for a deploy request.
@@ -62,5 +62,8 @@ interface ICrosschainDeployAdapter {
         bytes[] memory constructorArgs,
         bytes[] memory initDatas,
         uint8[] memory destinationDomainIDs
-    ) external view returns (uint256[] memory fees);
+    ) external view returns (uint256[] memory fees) {
+        uint256[] memory fees = new uint256[](4);
+        return fees;
+    }
 }

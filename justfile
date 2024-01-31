@@ -20,7 +20,6 @@ deploy-sepolia: build
     echo "Unimplemented" >&2
     exit 1
 
-
 # Builds locally using docker (useful for debugging dependency issues)
 docker-build:
     echo "Unimplemented" >&2

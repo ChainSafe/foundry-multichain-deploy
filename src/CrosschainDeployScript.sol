@@ -80,10 +80,9 @@ contract CrosschainDeployScript is Script {
      *   and the contract is deployed on the other chains.
      */
     function deploy(string calldata contractString, uint256 gasLimit, bool isUniquePerChain)
-        // uint8[] memory destinationDomainIDs
         public
         payable
-        hasDeploymentTargets
+        hasDeploymentNetworks
         returns (address[] memory)
     {
         // We use the contractString to get the bytecode of the contract,
@@ -109,10 +108,10 @@ contract CrosschainDeployScript is Script {
             contractAddresses[k] = contractAddress;
         }
         // purge the deployment targets now.
-        _constructorArgs = [];
-        _initDatas = [];
-        _domainIds = [];
-        _chainIds = [];
+        delete _chainIds;
+        delete _constructorArgs;
+        delete _domainIds;
+        delete _initDatas;
 
         return contractAddresses;
     }
@@ -123,15 +122,13 @@ contract CrosschainDeployScript is Script {
         return keccak256(abi.encodePacked(block.prevrandao, block.timestamp, msg.sender, _randomCounter));
     }
 
-    // what does this do?
-    function encodeInitData() public {}
-
-    modifier hasDeploymentTargets() {
-        // check that the user has added deployment networks by calling `addDeploymentTarget`
+    modifier hasDeploymentNetworks() {
+        // check that the user has added deployment networks by calling `addDeploymentNetwork`
         uint256 deploymentNetworksCount = _domainIds.length;
-        require(deploymentNetworksCount > 0, "Need to add deployment targets. Use `addDeploymentTarget` first");
+        require(deploymentNetworksCount > 0, "Need to add deployment networks. Use `addDeploymentNetwork` first");
         _;
     }
+
     /**
      * @notice Computes the address where the contract will be deployed on this chain.
      *     @param sender Address that requested deploy.
@@ -140,7 +137,6 @@ contract CrosschainDeployScript is Script {
      *     @param chainId the ID of the chain on which to deploy the contract
      *     @return Address where the contract will be deployed on this chain.
      */
-
     function computeAddressForChain(address sender, bytes32 salt, bool isUniquePerChain, uint256 chainId)
         external
         view

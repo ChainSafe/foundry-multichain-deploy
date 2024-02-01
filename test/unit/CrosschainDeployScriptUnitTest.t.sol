@@ -21,8 +21,8 @@ contract CrosschainDeployScriptUnitTest is Test {
     // add a deployment target and deploy
     function testAddDeploymentTargetAnvil() public {
         CrosschainDeployScript crosschainDeployScript = new CrosschainDeployScript("SimpleContract.sol:SimpleContract");
-        bytes memory constructorArgs = "0x";
-        bytes memory initData = "0x";
+        bytes memory constructorArgs = "";
+        bytes memory initData = "";
         crosschainDeployScript.setCrosschainDeployContractAddress(crosschainDeployAdapterAddress);
         crosschainDeployScript.addDeploymentTarget("sepolia", constructorArgs, initData);
         uint256 fee = 0.0001 ether;

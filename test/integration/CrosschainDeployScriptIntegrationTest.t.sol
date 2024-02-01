@@ -13,8 +13,8 @@ contract CrosschainDeployIntegrationTest is Test {
     function testAddDeploymentTargetIntegration() public {
         require(isValidChainID(block.chainid) == true, "Not a valid chain to test on. Are you using `--fork-url`?");
         CrosschainDeployScript crosschainDeployScript = new CrosschainDeployScript("SimpleContract.sol:SimpleContract");
-        bytes memory constructorArgs = "0x";
-        bytes memory initData = "0x";
+        bytes memory constructorArgs = "";
+        bytes memory initData = "";
         crosschainDeployScript.addDeploymentTarget("sepolia", constructorArgs, initData);
         uint256 fee = 0.0001 ether;
         crosschainDeployScript.deploy{value: fee}(50000, false);

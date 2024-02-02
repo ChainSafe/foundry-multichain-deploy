@@ -114,13 +114,17 @@ contract CrosschainDeployScript is Script {
                 .computeContractAddressForChain(msg.sender, salt, isUniquePerChain, _chainIds[k]);
             contractAddresses[k] = contractAddress;
         }
+        resetDeploymentNetworks();
+        return contractAddresses;
+    }
+
+    // empties the deployment networks added so far. Note that this won't change the contract string.
+    function resetDeploymentNetworks() public {
         // purge the deployment targets now.
         delete _chainIds;
         delete _constructorArgs;
         delete _domainIds;
         delete _initDatas;
-
-        return contractAddresses;
     }
 
     // returns a pseudorandom bytes32
@@ -129,8 +133,8 @@ contract CrosschainDeployScript is Script {
         return keccak256(abi.encodePacked(block.prevrandao, block.timestamp, msg.sender, _randomCounter));
     }
 
+    // check that the user has added deployment networks by calling `addDeploymentNetwork`
     modifier hasDeploymentNetworks() {
-        // check that the user has added deployment networks by calling `addDeploymentNetwork`
         uint256 deploymentNetworksCount = _domainIds.length;
         require(deploymentNetworksCount > 0, "Need to add deployment networks. Use `addDeploymentNetwork` first");
         _;

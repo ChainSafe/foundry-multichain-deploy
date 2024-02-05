@@ -41,6 +41,9 @@ contract CrosschainDeployScript is Script {
 
     uint8 private _randomCounter;
 
+    // use this to store a static value for the salt, one that the user can override using `setSalt`. If set to _anything_ other than 0x00000000000000000000, this will be used as the salt.
+    bytes32 private _staticSalt = 0x00000000000000000000;
+
     /**
      * @notice Constructor, takes the contract name.
      * @param _contractString Contract name in the form of `ContractFile.sol`, if the name of the contract and the file are the same, or `ContractFile.sol:ContractName` if they are different.
@@ -94,7 +97,13 @@ contract CrosschainDeployScript is Script {
         // We use the contractString to get the bytecode of the contract,
         // reference: https://book.getfoundry.sh/cheatcodes/get-code
         bytes memory deployByteCode = vm.getCode(contractString);
-        bytes32 salt = generateSalt();
+        bytes32 salt;
+        if (_staticSalt == 0x00000000000000000000) {
+            salt = generateSalt();
+        } else {
+            salt = _staticSalt;
+        }
+
         uint256[] memory fees = ICrosschainDeployAdapter(crosschainDeployContractAddress).calculateDeployFee(
             deployByteCode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds
         );
@@ -127,8 +136,22 @@ contract CrosschainDeployScript is Script {
         delete _initDatas;
     }
 
-    // returns a pseudorandom bytes32
+    // resets the static salt
+    function resetSalt() public {
+        _staticSalt = 0x00000000000000000000;
+    }
+
+    // sets the static salt
+    function setSalt(bytes32 salt) public {
+        _staticSalt = salt;
+    }
+
+    // returns a pseudorandom bytes32 for salt *if* _staticSalt is not set.
     function generateSalt() public returns (bytes32) {
+        require(
+            _staticSalt == 0x00000000000000000000,
+            "Static salt is set. Use `setSalt` to override it, or use resetSalt to reset it."
+        );
         _randomCounter++;
         return keccak256(abi.encodePacked(block.prevrandao, block.timestamp, msg.sender, _randomCounter));
     }

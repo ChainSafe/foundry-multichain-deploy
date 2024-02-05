@@ -10,7 +10,7 @@ import {MockCrosschainDeployAdapter} from "../mocks/MockCrosschainDeployAdapter.
 contract CrosschainDeployScriptUnitTest is Test {
     address crosschainDeployAdapterAddress;
 
-    // first start the dependent contract if we're on Anvil
+    // Deploy the mocked crosschain deploy adapter.
     function setUp() public {
         vm.startBroadcast();
         MockCrosschainDeployAdapter mockCrosschainDeployAdapter = new MockCrosschainDeployAdapter();
@@ -18,9 +18,14 @@ contract CrosschainDeployScriptUnitTest is Test {
         crosschainDeployAdapterAddress = address(mockCrosschainDeployAdapter);
     }
 
-    // add a deployment target and deploy
+    /**
+     * This test checks if we are able to deploy to a _mocked_ local contract,
+     * and checks if the call to the mocked contract is performed.
+     * It checks the addDeploymentTarget function, and the deploy function.
+     */
     function testAddDeploymentTargetAnvil() public {
         CrosschainDeployScript crosschainDeployScript = new CrosschainDeployScript("SimpleContract.sol:SimpleContract");
+        // set the constructorArgs and the initData.
         bytes memory constructorArgs = "";
         bytes memory initData = "";
         crosschainDeployScript.setCrosschainDeployContractAddress(crosschainDeployAdapterAddress);

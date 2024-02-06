@@ -10,12 +10,18 @@ import {MockCrosschainDeployAdapter} from "../mocks/MockCrosschainDeployAdapter.
 
 // NOTE: This needs `--fork-url` to run.
 contract CrosschainDeployIntegrationTest is Test {
+    string constant contractString = "SimpleContract.sol:SimpleContract";
+
+    modifier isValidChain() {
+        require(isValidChainId(block.chainid) == true, "Not a valid chain to test on. Are you using `--fork-url`?");
+
+        _;
+    }
     // add a deployment target and deploy
-    function testAddDeploymentTargetIntegration() public {
-        require(isValidChainID(block.chainid) == true, "Not a valid chain to test on. Are you using `--fork-url`?");
-        string memory contractString = "SimpleContract.sol:SimpleContract";
+
+    function testAddDeploymentTargetIntegration() public isValidChain {
         CrosschainDeployScript crosschainDeployScript = new CrosschainDeployScript(contractString);
-        bytes memory constructorArgs = "";
+        bytes memory constructorArgs = abi.encode(uint256(1));
         bytes memory initData = "";
         crosschainDeployScript.addDeploymentTarget("sepolia", constructorArgs, initData);
         uint256 fee = 0.0001 ether;
@@ -67,7 +73,7 @@ contract CrosschainDeployIntegrationTest is Test {
 
     // checks that the chainID is of a chain that our contracts
     // support.
-    function isValidChainID(uint256 chainId) private returns (bool) {
+    function isValidChainId(uint256 chainId) private returns (bool) {
         uint256[] memory _chainIds = new uint256[](7);
         _chainIds[0] = 5;
         _chainIds[1] = 11155111;
@@ -82,5 +88,71 @@ contract CrosschainDeployIntegrationTest is Test {
             }
         }
         return false;
+    }
+
+    // tests that the contract is deployed and called with varying initData.
+    function testDifferentConstructorArgsAndInitDataIntegration() public isValidChain {
+        // FIXME: This test doesn't compile without the `--via-ir` flag. I don't have too many local variables though,
+        // and I'm not sure how this is different from the earlier test which only had one deployment target.
+        CrosschainDeployScript crosschainDeployScript = new CrosschainDeployScript(contractString);
+
+        // setup empty arrays to hold all the inputs to the contract.
+        string[] memory deploymentTargets = new string[](2);
+        bytes[] memory constructorArgs = new bytes[](2);
+        bytes[] memory initDatas = new bytes[](2);
+        uint8[] memory domainIds = new uint8[](2);
+
+        deploymentTargets[0] = "sepolia";
+        constructorArgs[0] = abi.encode(uint256(1));
+        initDatas[0] = abi.encodeWithSignature("inc()");
+        domainIds[0] = 2;
+
+        deploymentTargets[1] = "goerli";
+        constructorArgs[1] = abi.encode(uint256(10));
+        initDatas[1] = abi.encodeWithSignature("add(uint256)", uint256(5));
+        domainIds[1] = 1;
+
+        // loop through these and call `addDeploymentTarget` so that they'll be added in order.
+        for (uint8 i = 0; i < deploymentTargets.length; i++) {
+            crosschainDeployScript.addDeploymentTarget(deploymentTargets[i], constructorArgs[i], initDatas[i]);
+        }
+
+        // before calling `deploy`, setup everything required to check whether the
+        // call to the upstream contract is _actually_ performed.
+        ICrosschainDeployAdapter adapter = ICrosschainDeployAdapter(0x85d62AD850B322152BF4ad9147bfBF097DA42217);
+        bytes memory _deployByteCode = vm.getCode(contractString);
+        uint256 _gasLimit = 5000;
+        bool _isUniquePerChain = false;
+        // generate a pseudorandom salt and use `setSalt` so that the same value is used in the contract call.
+        bytes32 _salt = crosschainDeployScript.generateSalt();
+        crosschainDeployScript.setSalt(_salt);
+
+        // expect a `calculateDeployFee` call to the *upstream* contract
+        vm.expectCall(
+            address(adapter),
+            abi.encodeCall(
+                adapter.calculateDeployFee,
+                (_deployByteCode, _gasLimit, _salt, _isUniquePerChain, constructorArgs, initDatas, domainIds)
+            )
+        );
+        uint256[] memory fees = adapter.calculateDeployFee(
+            _deployByteCode, _gasLimit, _salt, _isUniquePerChain, constructorArgs, initDatas, domainIds
+        );
+        uint256 totalFee;
+        uint256 feesArrayLength = fees.length;
+        for (uint256 j = 0; j < feesArrayLength; j++) {
+            uint256 _fee = fees[j];
+            totalFee += _fee;
+        }
+
+        // expect a `deploy` call to the *upstream* contract
+        vm.expectCall(
+            address(adapter),
+            abi.encodeCall(
+                adapter.deploy,
+                (_deployByteCode, _gasLimit, _salt, _isUniquePerChain, constructorArgs, initDatas, domainIds, fees)
+            )
+        );
+        crosschainDeployScript.deploy{value: totalFee}(_gasLimit, _isUniquePerChain);
     }
 }

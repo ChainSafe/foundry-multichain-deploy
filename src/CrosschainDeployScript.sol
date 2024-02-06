@@ -59,6 +59,17 @@ contract CrosschainDeployScript is Script {
         _stringToNetworkIds["gnosis-chiado"] = NetworkIds(9, 10200);
     }
 
+    function _convertDeploymentTargetToNetworkIds(string memory deploymentTarget)
+        private
+        view
+        returns (NetworkIds memory)
+    {
+        NetworkIds memory deploymentTargetNetworkIds = _stringToNetworkIds[deploymentTarget];
+        uint8 deploymentTargetDomainId = deploymentTargetNetworkIds.InternalDomainId;
+        require(deploymentTargetDomainId != 0, "Invalid deployment target");
+        return deploymentTargetNetworkIds;
+    }
+
     /**
      * This function will take the network, constructor args and initdata and
      * save these to a mapping.
@@ -66,12 +77,9 @@ contract CrosschainDeployScript is Script {
     function addDeploymentTarget(string memory deploymentTarget, bytes memory constructorArgs, bytes memory initData)
         public
     {
-        NetworkIds memory deploymentTargetNetworkIds = _stringToNetworkIds[deploymentTarget];
-        uint8 deploymentTargetDomainId = deploymentTargetNetworkIds.InternalDomainId;
-        require(deploymentTargetDomainId != 0, "Invalid deployment target");
-        _domainIds.push(deploymentTargetDomainId);
-        uint256 deploymentTargetChainId = deploymentTargetNetworkIds.ChainId;
-        _chainIds.push(deploymentTargetChainId);
+        NetworkIds memory networkIds = _convertDeploymentTargetToNetworkIds(deploymentTarget);
+        _domainIds.push(networkIds.InternalDomainId);
+        _chainIds.push(networkIds.ChainId);
         _constructorArgs.push(constructorArgs);
         _initDatas.push(initData);
     }
@@ -113,7 +121,6 @@ contract CrosschainDeployScript is Script {
             uint256 fee = fees[j];
             totalFee += fee;
         }
-        // TODO: Would I need to check if totalFee < msg.value since this `deploy` is itself payable and called with some fee?
         ICrosschainDeployAdapter(crosschainDeployContractAddress).deploy{value: totalFee}(
             deployByteCode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds, fees
         );
@@ -168,16 +175,18 @@ contract CrosschainDeployScript is Script {
      *     @param sender Address that requested deploy.
      *     @param salt Entropy for contract address generation.
      *     @param isUniquePerChain True to have unique addresses on every chain.
-     *     @param chainId the ID of the chain on which to deploy the contract
+     *     @param deploymentTarget the name of the network onto which to deploy the chain.
      *     @return Address where the contract will be deployed on this chain.
      */
-    function computeAddressForChain(address sender, bytes32 salt, bool isUniquePerChain, uint256 chainId)
+    function computeAddressForChain(address sender, bytes32 salt, bool isUniquePerChain, string memory deploymentTarget)
         external
         view
         returns (address)
     {
+        NetworkIds memory networkIds = _convertDeploymentTargetToNetworkIds(deploymentTarget);
+
         return ICrosschainDeployAdapter(crosschainDeployContractAddress).computeContractAddressForChain(
-            sender, salt, isUniquePerChain, chainId
+            sender, salt, isUniquePerChain, networkIds.InternalDomainId
         );
     }
 

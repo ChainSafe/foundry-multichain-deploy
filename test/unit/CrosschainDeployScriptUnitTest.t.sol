@@ -26,7 +26,7 @@ contract CrosschainDeployScriptUnitTest is Test {
     function testAddDeploymentTargetAnvil() public {
         CrosschainDeployScript crosschainDeployScript = new CrosschainDeployScript("SimpleContract.sol:SimpleContract");
         // set the constructorArgs and the initData.
-        bytes memory constructorArgs = "";
+        bytes memory constructorArgs = abi.encode(uint256(1));
         bytes memory initData = "";
         crosschainDeployScript.setCrosschainDeployContractAddress(crosschainDeployAdapterAddress);
         crosschainDeployScript.addDeploymentTarget("sepolia", constructorArgs, initData);

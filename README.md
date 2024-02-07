@@ -7,7 +7,7 @@ for the Hardhat plugin version.
 
 ## Installation
 
-Run `forge install chainsafe/foundry-multichain-deploy` to install this plugin to your own foundry project. You might need to use `--no-commit` so as to properly configure your git working directory and commit the dependency yourself.
+Run `forge install chainsafe/foundry-multichain-deploy` to install this plugin to your own foundry project. You might need to use `--no-commit` so as to properly configure your git working directory and commit the dependency yourself. For further instructions, check [the official documentation.](https://book.getfoundry.sh/projects/dependencies)
 
 ## Usage
 

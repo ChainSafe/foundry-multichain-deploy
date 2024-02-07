@@ -5,6 +5,10 @@ Sygma. See
 [ChainSafe/hardhat-plugin-multichain-deploy]("https://github.com/ChainSafe/hardhat-plugin-multichain-deploy")
 for the Hardhat plugin version.
 
+## Installation
+
+Run `forge install chainsafe/foundry-multichain-deploy` to install this plugin to your own foundry project. You might need to use `--no-commit` so as to properly configure your git working directory and commit the dependency yourself.
+
 ## Usage
 
 The `CrosschainDeployScript` contract is a foundry "script", which means that it

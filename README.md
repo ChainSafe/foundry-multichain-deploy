@@ -3,7 +3,7 @@
 Provides `foundry` tooling for the multichain deployment contract built atop of
 Sygma. See
 [ChainSafe/hardhat-plugin-multichain-deploy]("https://github.com/ChainSafe/hardhat-plugin-multichain-deploy")
-for more details.
+for the Hardhat plugin version.
 
 ## Usage
 

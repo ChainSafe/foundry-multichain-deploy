@@ -16,24 +16,33 @@ is not really deployed onto the blockchain. It provides a few helper methods
 that make it easier to deal with the `CrosschainDeployAdapter` from the hardhat
 repository.
 
-To use it, first import the `CrosschainDeployScript`.
+To use it, first import the `CrosschainDeployScript` and inherit from it.
 
 ```solidity
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity 0.8.20
+import {CrosschainDeployScript} from "foundry-multichain-deploy/src/CrosschainDeployScript.sol";
 
-contract SampleContract {
-    function deployMultichain public payable() {
-        // Remember that forge "builds" the contracts and stores them and their ABI in the root level of `out` so you'd just need to use the contract file name and the contract name and forge gets it from the ABI.
-        CrosschainDeployScript crosschainDeployScript = new CrosschainDeployScript("SimpleContract.sol:SimpleContract");
+contract SampleDeployScript is CrosschainDeployScript {
+
+    function run {
+        // Remember that forge "builds" the contracts and stores them and their
+        // ABI in the root level of the `out` folder so you'd just need to use the contract
+        // file name and the contract name and forge gets it from the ABI.
         bytes memory constructorArgs = abi.encode(uint256("10"));
         bytes memory initData = abi.encode("add(uint256)", uint256(10));
-        crosschainDeployScript.setCrosschainDeployContractAddress(crosschainDeployAdapterAddress);
-        crosschainDeployScript.addDeploymentTarget("sepolia", constructorArgs, initData);
-        crosschainDeployScript.deploy{value: msg.value}(50000, false);
+        setCrosschainDeployContractAddress(crosschainDeployAdapterAddress);
+        addDeploymentTarget("sepolia", constructorArgs, initData);
+        deploy{value: msg.value}(50000, false);
     }
 }
 ```
+
+Now, you can run this with `forge script script/SampleDeployScript.sol:SampleDeployScript SimpleContract.sol:SimpleContract --rpc-url $CHAIN_RPC_URL --broadcast -vvv --verify`.
+**Note** that the contract you'd like to deploy, `SimpleContract.sol` is provided as an argument to `forge script` because it is then passed to the `constructor` of `CrosschainDeployScript` this way.
+
+This script is not deployed, but it instead constructs the calls to the upstream
+contract and broadcasts them (thanks to the `--broadcast` flag).
 
 A good example of how to use this project is demonstrated in the
 [`test/unit/CrosschainDeployScript.t.sol`](test/unit/CrosschainDeployScriptTest.t.sol)

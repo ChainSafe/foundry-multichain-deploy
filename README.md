@@ -1,7 +1,6 @@
 # foundry-multichain-deploy
 
-Provides `foundry` tooling for the multichain deployment contract built atop of
-Sygma. See
+Provides `foundry` tooling for the multichain deployment contract built atop Sygma. See
 [ChainSafe/hardhat-plugin-multichain-deploy]("https://github.com/ChainSafe/hardhat-plugin-multichain-deploy")
 for the Hardhat plugin version.
 
@@ -31,15 +30,14 @@ contract SampleDeployScript is CrosschainDeployScript {
         // file name and the contract name and forge gets it from the ABI.
         bytes memory constructorArgs = abi.encode(uint256("10"));
         bytes memory initData = abi.encode("add(uint256)", uint256(10));
-        setCrosschainDeployContractAddress(crosschainDeployAdapterAddress);
         addDeploymentTarget("sepolia", constructorArgs, initData);
-        deploy{value: msg.value}(50000, false);
+        addDeploymentTarget("holesky", constructorArgs, initData);
+        deploy{value: msg.value}("SimpleContract.sol:SimpleContract", 50000, false);
     }
 }
 ```
 
-Now, you can run this with `forge script script/SampleDeployScript.sol:SampleDeployScript SimpleContract.sol:SimpleContract --rpc-url $CHAIN_RPC_URL --broadcast -vvv --verify`.
-**Note** that the contract you'd like to deploy, `SimpleContract.sol` is provided as an argument to `forge script` because it is then passed to the `constructor` of `CrosschainDeployScript` this way.
+Now, you can run this with `forge script script/SampleDeployScript.sol:SampleDeployScript --rpc-url $CHAIN_RPC_URL --broadcast -vvv --verify`.
 
 This script is not deployed, but it instead constructs the calls to the upstream
 contract and broadcasts them (thanks to the `--broadcast` flag).

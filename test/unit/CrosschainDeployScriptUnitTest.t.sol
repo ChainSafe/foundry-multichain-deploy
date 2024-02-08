@@ -24,7 +24,7 @@ contract CrosschainDeployScriptUnitTest is Test {
      * It checks the addDeploymentTarget function, and the deploy function.
      */
     function testAddDeploymentTargetAnvil() public {
-        CrosschainDeployScript crosschainDeployScript = new CrosschainDeployScript("SimpleContract.sol:SimpleContract");
+        CrosschainDeployScript crosschainDeployScript = new CrosschainDeployScript();
         // set the constructorArgs and the initData.
         bytes memory constructorArgs = abi.encode(uint256(1));
         bytes memory initData = "";
@@ -32,6 +32,6 @@ contract CrosschainDeployScriptUnitTest is Test {
         crosschainDeployScript.addDeploymentTarget("sepolia", constructorArgs, initData);
         uint256 fee = 0.0001 ether;
         vm.deal(msg.sender, fee * 2);
-        crosschainDeployScript.deploy{value: fee}(50000, false);
+        crosschainDeployScript.deploy{value: fee}("SimpleContract.sol:SimpleContract", 50000, false);
     }
 }

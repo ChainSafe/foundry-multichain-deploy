@@ -3,7 +3,7 @@ set dotenv-load
 
 # build the contracts
 build:
-    forge build --via-ir
+    forge build
 
 # format source
 fmt:
@@ -11,16 +11,16 @@ fmt:
 
 # run unit tests
 test:
-    forge test --via-ir --no-match-test Integration
+    forge test --no-match-test Integration
 
 # run integration tests, needs --fork-url
 integration-test:
     set -x
-    forge test --via-ir --mt Integration --fork-url $INTEGRATION_FORK_URL -vvv
+    forge test --mt Integration --fork-url $INTEGRATION_FORK_URL -vvv
 
 # watches the directory for changes and rebuilds.
 watch-build:
-    forge build --via-ir --watch
+    forge build --watch
 
 deploy-anvil: build
     echo "Unimplemented" >&2

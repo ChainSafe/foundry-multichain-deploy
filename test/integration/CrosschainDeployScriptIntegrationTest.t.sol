@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-
 pragma solidity 0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
@@ -11,6 +10,10 @@ import {MockCrosschainDeployAdapter} from "../mocks/MockCrosschainDeployAdapter.
 // NOTE: This needs `--fork-url` to run.
 contract CrosschainDeployIntegrationTest is Test {
     string constant contractString = "SimpleContract.sol:SimpleContract";
+    string[] _deploymentTargets;
+    bytes[] _constructorArgs;
+    bytes[] _initDatas;
+    uint8[] _domainIds;
 
     modifier isValidChain() {
         require(isValidChainId(block.chainid) == true, "Not a valid chain to test on. Are you using `--fork-url`?");
@@ -20,7 +23,7 @@ contract CrosschainDeployIntegrationTest is Test {
     // add a deployment target and deploy
 
     function testAddDeploymentTargetIntegration() public isValidChain {
-        CrosschainDeployScript crosschainDeployScript = new CrosschainDeployScript(contractString);
+        CrosschainDeployScript crosschainDeployScript = new CrosschainDeployScript();
         bytes memory constructorArgs = abi.encode(uint256(1));
         bytes memory initData = "";
         crosschainDeployScript.addDeploymentTarget("sepolia", constructorArgs, initData);
@@ -35,11 +38,11 @@ contract CrosschainDeployIntegrationTest is Test {
         bytes32 _salt = crosschainDeployScript.generateSalt();
         crosschainDeployScript.setSalt(_salt);
 
-        bytes[] memory _constructorArgs = new bytes[](1);
+        _constructorArgs = new bytes[](1);
         _constructorArgs[0] = constructorArgs;
-        bytes[] memory _initDatas = new bytes[](1);
+        _initDatas = new bytes[](1);
         _initDatas[0] = initData;
-        uint8[] memory _domainIds = new uint8[](1);
+        _domainIds = new uint8[](1);
         _domainIds[0] = 2;
 
         // expect a `calculateDeployFee` call to the *upstream* contract
@@ -56,8 +59,7 @@ contract CrosschainDeployIntegrationTest is Test {
         uint256 totalFee;
         uint256 feesArrayLength = fees.length;
         for (uint256 j = 0; j < feesArrayLength; j++) {
-            uint256 fee = fees[j];
-            totalFee += fee;
+            totalFee += fees[j];
         }
 
         // expect a `deploy` call to the *upstream* contract
@@ -68,12 +70,12 @@ contract CrosschainDeployIntegrationTest is Test {
                 (_deployByteCode, _gasLimit, _salt, _isUniquePerChain, _constructorArgs, _initDatas, _domainIds, fees)
             )
         );
-        crosschainDeployScript.deploy{value: fee}(_gasLimit, _isUniquePerChain);
+        crosschainDeployScript.deploy{value: fee}(contractString, _gasLimit, _isUniquePerChain);
     }
 
     // checks that the chainID is of a chain that our contracts
     // support.
-    function isValidChainId(uint256 chainId) private returns (bool) {
+    function isValidChainId(uint256 chainId) private pure returns (bool) {
         uint256[] memory _chainIds = new uint256[](7);
         _chainIds[0] = 5;
         _chainIds[1] = 11155111;
@@ -92,29 +94,27 @@ contract CrosschainDeployIntegrationTest is Test {
 
     // tests that the contract is deployed and called with varying initData.
     function testDifferentConstructorArgsAndInitDataIntegration() public isValidChain {
-        // FIXME: This test doesn't compile without the `--via-ir` flag. I don't have too many local variables though,
-        // and I'm not sure how this is different from the earlier test which only had one deployment target.
-        CrosschainDeployScript crosschainDeployScript = new CrosschainDeployScript(contractString);
+        CrosschainDeployScript crosschainDeployScript = new CrosschainDeployScript();
 
         // setup empty arrays to hold all the inputs to the contract.
-        string[] memory deploymentTargets = new string[](2);
-        bytes[] memory constructorArgs = new bytes[](2);
-        bytes[] memory initDatas = new bytes[](2);
-        uint8[] memory domainIds = new uint8[](2);
+        _deploymentTargets = new string[](2);
+        _constructorArgs = new bytes[](2);
+        _initDatas = new bytes[](2);
+        _domainIds = new uint8[](2);
 
-        deploymentTargets[0] = "sepolia";
-        constructorArgs[0] = abi.encode(uint256(1));
-        initDatas[0] = abi.encodeWithSignature("inc()");
-        domainIds[0] = 2;
+        _deploymentTargets[0] = "sepolia";
+        _constructorArgs[0] = abi.encode(uint256(1));
+        _initDatas[0] = abi.encodeWithSignature("inc()");
+        _domainIds[0] = 2;
 
-        deploymentTargets[1] = "goerli";
-        constructorArgs[1] = abi.encode(uint256(10));
-        initDatas[1] = abi.encodeWithSignature("add(uint256)", uint256(5));
-        domainIds[1] = 1;
+        _deploymentTargets[1] = "goerli";
+        _constructorArgs[1] = abi.encode(uint256(10));
+        _initDatas[1] = abi.encodeWithSignature("add(uint256)", uint256(5));
+        _domainIds[1] = 1;
 
         // loop through these and call `addDeploymentTarget` so that they'll be added in order.
-        for (uint8 i = 0; i < deploymentTargets.length; i++) {
-            crosschainDeployScript.addDeploymentTarget(deploymentTargets[i], constructorArgs[i], initDatas[i]);
+        for (uint8 i = 0; i < _deploymentTargets.length; i++) {
+            crosschainDeployScript.addDeploymentTarget(_deploymentTargets[i], _constructorArgs[i], _initDatas[i]);
         }
 
         // before calling `deploy`, setup everything required to check whether the
@@ -132,11 +132,11 @@ contract CrosschainDeployIntegrationTest is Test {
             address(adapter),
             abi.encodeCall(
                 adapter.calculateDeployFee,
-                (_deployByteCode, _gasLimit, _salt, _isUniquePerChain, constructorArgs, initDatas, domainIds)
+                (_deployByteCode, _gasLimit, _salt, _isUniquePerChain, _constructorArgs, _initDatas, _domainIds)
             )
         );
         uint256[] memory fees = adapter.calculateDeployFee(
-            _deployByteCode, _gasLimit, _salt, _isUniquePerChain, constructorArgs, initDatas, domainIds
+            _deployByteCode, _gasLimit, _salt, _isUniquePerChain, _constructorArgs, _initDatas, _domainIds
         );
         uint256 totalFee;
         uint256 feesArrayLength = fees.length;
@@ -150,9 +150,9 @@ contract CrosschainDeployIntegrationTest is Test {
             address(adapter),
             abi.encodeCall(
                 adapter.deploy,
-                (_deployByteCode, _gasLimit, _salt, _isUniquePerChain, constructorArgs, initDatas, domainIds, fees)
+                (_deployByteCode, _gasLimit, _salt, _isUniquePerChain, _constructorArgs, _initDatas, _domainIds, fees)
             )
         );
-        crosschainDeployScript.deploy{value: totalFee}(_gasLimit, _isUniquePerChain);
+        crosschainDeployScript.deploy{value: totalFee}(contractString, _gasLimit, _isUniquePerChain);
     }
 }

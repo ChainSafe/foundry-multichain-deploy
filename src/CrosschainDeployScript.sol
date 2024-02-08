@@ -10,8 +10,6 @@ import {ICrosschainDeployAdapter} from "./interfaces/CrosschainDeployAdapterInte
  * @author ChainSafe Systems
  */
 contract CrosschainDeployScript is Script {
-    // this is the string for the contract name,
-    string public contractString;
     // this is the address of the original contract defined in chainsafe/hardhat-plugin-multichain-deploy
     // this address is the same across all chains
     address private crosschainDeployContractAddress = 0x85d62AD850B322152BF4ad9147bfBF097DA42217;
@@ -46,10 +44,8 @@ contract CrosschainDeployScript is Script {
 
     /**
      * @notice Constructor, takes the contract name.
-     * @param _contractString Contract name in the form of `ContractFile.sol`, if the name of the contract and the file are the same, or `ContractFile.sol:ContractName` if they are different.
      */
-    constructor(string memory _contractString) {
-        contractString = _contractString;
+    constructor() {
         _stringToNetworkIds["goerli"] = NetworkIds(1, 5);
         _stringToNetworkIds["sepolia"] = NetworkIds(2, 11155111);
         _stringToNetworkIds["cronos-testnet"] = NetworkIds(5, 338);
@@ -89,6 +85,7 @@ contract CrosschainDeployScript is Script {
      * @notice `forge`'s `getCode` takes it, along with some other parameters and passes
      * @notice it along to the `deploy` function of the `CrossChainDeployAdapter`
      * @notice contract.
+     * @param contractString Contract name in the form of `ContractFile.sol`, if the name of the contract and the file are the same, or `ContractFile.sol:ContractName` if they are different.
      * @param gasLimit Contract deploy and init gas.
      * @param isUniquePerChain True to have unique addresses on every chain.
      *   Users call this function and pass only the function call string as
@@ -96,7 +93,7 @@ contract CrosschainDeployScript is Script {
      *   and the `callData` and `bytesCode` are extracted from it.
      *   and the contract is deployed on the other chains.
      */
-    function deploy(uint256 gasLimit, bool isUniquePerChain)
+    function deploy(string calldata contractString, uint256 gasLimit, bool isUniquePerChain)
         public
         payable
         hasDeploymentNetworks

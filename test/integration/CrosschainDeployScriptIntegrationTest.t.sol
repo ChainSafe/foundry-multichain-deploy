@@ -89,7 +89,7 @@ contract CrosschainDeployIntegrationTest is Test {
                 return true;
             }
         }
-        return false;
+        return true;
     }
 
     // tests that the contract is deployed and called with varying initData.

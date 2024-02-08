@@ -3,6 +3,7 @@
 pragma solidity 0.8.20;
 
 import {Script} from "forge-std/Script.sol";
+import "forge-std/console.sol";
 import {ICrosschainDeployAdapter} from "./interfaces/CrosschainDeployAdapterInterface.sol";
 
 /**
@@ -14,14 +15,19 @@ contract CrosschainDeployScript is Script {
     // this address is the same across all chains
     address private crosschainDeployContractAddress = 0x85d62AD850B322152BF4ad9147bfBF097DA42217;
 
+    enum Env{ UNKNOWN, TESTNET, MAINNET }
+
     struct NetworkIds {
         uint8 InternalDomainId;
         uint256 ChainId;
+        Env env;
     }
 
     // given a string, obtain the domain ID;
     // https://www.notion.so/chainsafe/Testnet-deployment-0483991cf1ac481593d37baf8d48712a
     mapping(string => NetworkIds) private _stringToNetworkIds;
+
+   Env env = Env.UNKNOWN;
 
     // NOTE: All three of these need to be stored in the same order since they've
     //      a shared index. Storing them in a mapping isn't gas-efficient since I'd
@@ -46,21 +52,25 @@ contract CrosschainDeployScript is Script {
      * @notice Constructor, takes the contract name.
      */
     constructor() {
-        _stringToNetworkIds["goerli"] = NetworkIds(1, 5);
-        _stringToNetworkIds["sepolia"] = NetworkIds(2, 11155111);
-        _stringToNetworkIds["cronos-testnet"] = NetworkIds(5, 338);
-        _stringToNetworkIds["holesky"] = NetworkIds(6, 17000);
-        _stringToNetworkIds["mumbai"] = NetworkIds(7, 80001);
-        _stringToNetworkIds["arbitrum-sepolia"] = NetworkIds(8, 421614);
-        _stringToNetworkIds["gnosis-chiado"] = NetworkIds(9, 10200);
+        _stringToNetworkIds["goerli"] = NetworkIds(1, 5, Env.TESTNET);
+        _stringToNetworkIds["sepolia"] = NetworkIds(2, 11155111, Env.TESTNET);
+        _stringToNetworkIds["cronos-testnet"] = NetworkIds(5, 338, Env.TESTNET);
+        _stringToNetworkIds["holesky"] = NetworkIds(6, 17000, Env.TESTNET);
+        _stringToNetworkIds["mumbai"] = NetworkIds(7, 80001, Env.TESTNET);
+        _stringToNetworkIds["arbitrum-sepolia"] = NetworkIds(8, 421614, Env.TESTNET);
+        _stringToNetworkIds["gnosis-chiado"] = NetworkIds(9, 10200, Env.TESTNET);
     }
 
     function _convertDeploymentTargetToNetworkIds(string memory deploymentTarget)
         private
-        view
         returns (NetworkIds memory)
     {
         NetworkIds memory deploymentTargetNetworkIds = _stringToNetworkIds[deploymentTarget];
+        if(env == Env.UNKNOWN) {
+            env = deploymentTargetNetworkIds.env;
+        } else {
+            require(env == deploymentTargetNetworkIds.env, "Deployment target is not in the same env as previous deployment targets");
+        }
         uint8 deploymentTargetDomainId = deploymentTargetNetworkIds.InternalDomainId;
         require(deploymentTargetDomainId != 0, "Invalid deployment target");
         return deploymentTargetNetworkIds;
@@ -97,7 +107,6 @@ contract CrosschainDeployScript is Script {
         public
         payable
         hasDeploymentNetworks
-        returns (address[] memory)
     {
         // We use the contractString to get the bytecode of the contract,
         // reference: https://book.getfoundry.sh/cheatcodes/get-code
@@ -121,14 +130,21 @@ contract CrosschainDeployScript is Script {
         ICrosschainDeployAdapter(crosschainDeployContractAddress).deploy{value: totalFee}(
             deployByteCode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds, fees
         );
-        address[] memory contractAddresses = new address[](_chainIds.length);
-        for (uint256 k = 0; k < _chainIds.length; k++) {
-            address contractAddress = ICrosschainDeployAdapter(crosschainDeployContractAddress)
-                .computeContractAddressForChain(msg.sender, salt, isUniquePerChain, _chainIds[k]);
-            contractAddresses[k] = contractAddress;
+        console.log("Due to https://github.com/foundry-rs/foundry/issues/3885, we cannot calculate deployed contract address.");
+        if(env == Env.MAINNET) {
+            console.log("You can track deployment progress at https://scan.test.buildwithsygma.com/transfer/<txHash>");
         }
+        if(env == Env.TESTNET) {
+            console.log("You can track deployment progress at https://scan.buildwithsygma.com/transfer/<txHash>");
+        }
+        // address[] memory contractAddresses = new address[](_chainIds.length);
+        // for (uint256 k = 0; k < _chainIds.length; k++) {
+        //     address contractAddress = ICrosschainDeployAdapter(crosschainDeployContractAddress)
+        //         .computeContractAddressForChain(msg.sender, salt, isUniquePerChain, _chainIds[k]);
+        //     contractAddresses[k] = contractAddress;
+        // }
         resetDeploymentNetworks();
-        return contractAddresses;
+        // return contractAddresses;
     }
 
     // empties the deployment networks added so far. Note that this won't change the contract string.
@@ -177,7 +193,6 @@ contract CrosschainDeployScript is Script {
      */
     function computeAddressForChain(address sender, bytes32 salt, bool isUniquePerChain, string memory deploymentTarget)
         external
-        view
         returns (address)
     {
         NetworkIds memory networkIds = _convertDeploymentTargetToNetworkIds(deploymentTarget);

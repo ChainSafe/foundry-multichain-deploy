@@ -1,0 +1,212 @@
+// SPDX-License-Identifier: LGPL-3.0-only
+
+pragma solidity 0.8.20;
+
+import {Script} from "forge-std/Script.sol";
+import "forge-std/console.sol";
+import {ICrosschainDeployAdapter} from "./interfaces/CrosschainDeployAdapterInterface.sol";
+
+/**
+ * @title Provides a script to allow users to call the multichain deployment contract defined in `CrossChainDeployAdapter` from chainsafe/hardhat-plugin-multichain-deploy, passing it the contract bytecode and constructor arguments.
+ * @author ChainSafe Systems
+ */
+contract CrosschainDeployScript is Script {
+    // this is the address of the original contract defined in chainsafe/hardhat-plugin-multichain-deploy
+    // this address is the same across all chains
+    address private crosschainDeployContractAddress = 0x85d62AD850B322152BF4ad9147bfBF097DA42217;
+
+    enum Env{ UNKNOWN, TESTNET, MAINNET }
+
+    struct NetworkIds {
+        uint8 InternalDomainId;
+        uint256 ChainId;
+        Env env;
+    }
+
+    // given a string, obtain the domain ID;
+    // https://www.notion.so/chainsafe/Testnet-deployment-0483991cf1ac481593d37baf8d48712a
+    mapping(string => NetworkIds) private _stringToNetworkIds;
+
+   Env env = Env.UNKNOWN;
+
+    // NOTE: All three of these need to be stored in the same order since they've
+    //      a shared index. Storing them in a mapping isn't gas-efficient since I'd
+    //      have to loop over these to build these arrays later, and that would not
+    //      translate to a `bytes[] memory` object, which is what the contract method needs.
+    //      Explicit conversion is a waste of gas.
+    // store the domain IDs
+    uint8[] private _domainIds;
+    // store the constructor args.
+    bytes[] private _constructorArgs;
+    // store the init datas;
+    bytes[] private _initDatas;
+    // store the chain ids
+    uint256[] private _chainIds;
+
+    uint8 private _randomCounter;
+
+    // use this to store a static value for the salt, one that the user can override using `setSalt`. If set to _anything_ other than 0x00000000000000000000, this will be used as the salt.
+    bytes32 private _staticSalt = 0x00000000000000000000;
+
+    /**
+     * @notice Constructor, takes the contract name.
+     */
+    constructor() {
+        _stringToNetworkIds["goerli"] = NetworkIds(1, 5, Env.TESTNET);
+        _stringToNetworkIds["sepolia"] = NetworkIds(2, 11155111, Env.TESTNET);
+        _stringToNetworkIds["cronos-testnet"] = NetworkIds(5, 338, Env.TESTNET);
+        _stringToNetworkIds["holesky"] = NetworkIds(6, 17000, Env.TESTNET);
+        _stringToNetworkIds["mumbai"] = NetworkIds(7, 80001, Env.TESTNET);
+        _stringToNetworkIds["arbitrum-sepolia"] = NetworkIds(8, 421614, Env.TESTNET);
+        _stringToNetworkIds["gnosis-chiado"] = NetworkIds(9, 10200, Env.TESTNET);
+    }
+
+    function _convertDeploymentTargetToNetworkIds(string memory deploymentTarget)
+        private
+        returns (NetworkIds memory)
+    {
+        NetworkIds memory deploymentTargetNetworkIds = _stringToNetworkIds[deploymentTarget];
+        if(env == Env.UNKNOWN) {
+            env = deploymentTargetNetworkIds.env;
+        } else {
+            require(env == deploymentTargetNetworkIds.env, "Deployment target is not in the same env as previous deployment targets");
+        }
+        uint8 deploymentTargetDomainId = deploymentTargetNetworkIds.InternalDomainId;
+        require(deploymentTargetDomainId != 0, "Invalid deployment target");
+        return deploymentTargetNetworkIds;
+    }
+
+    /**
+     * This function will take the network, constructor args and initdata and
+     * save these to a mapping.
+     */
+    function addDeploymentTarget(string memory deploymentTarget, bytes memory constructorArgs, bytes memory initData)
+        public
+    {
+        NetworkIds memory networkIds = _convertDeploymentTargetToNetworkIds(deploymentTarget);
+        _domainIds.push(networkIds.InternalDomainId);
+        _chainIds.push(networkIds.ChainId);
+        _constructorArgs.push(constructorArgs);
+        _initDatas.push(initData);
+    }
+
+    /**
+     * @notice this function takes in the contract string, in the form that
+     * @notice `forge`'s `getCode` takes it, along with some other parameters and passes
+     * @notice it along to the `deploy` function of the `CrossChainDeployAdapter`
+     * @notice contract.
+     * @param contractString Contract name in the form of `ContractFile.sol`, if the name of the contract and the file are the same, or `ContractFile.sol:ContractName` if they are different.
+     * @param gasLimit Contract deploy and init gas.
+     * @param isUniquePerChain True to have unique addresses on every chain.
+     *   Users call this function and pass only the function call string as
+     *   `MyContract.sol:MyContract`. The function call string is then parsed
+     *   and the `callData` and `bytesCode` are extracted from it.
+     *   and the contract is deployed on the other chains.
+     */
+    function deploy(string calldata contractString, uint256 gasLimit, bool isUniquePerChain)
+        public
+        payable
+        hasDeploymentNetworks
+    {
+        // We use the contractString to get the bytecode of the contract,
+        // reference: https://book.getfoundry.sh/cheatcodes/get-code
+        bytes memory deployByteCode = vm.getCode(contractString);
+        bytes32 salt;
+        if (_staticSalt == 0x00000000000000000000) {
+            salt = generateSalt();
+        } else {
+            salt = _staticSalt;
+        }
+
+        uint256[] memory fees = ICrosschainDeployAdapter(crosschainDeployContractAddress).calculateDeployFee(
+            deployByteCode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds
+        );
+        uint256 totalFee;
+        uint256 feesArrayLength = fees.length;
+        for (uint256 j = 0; j < feesArrayLength; j++) {
+            uint256 fee = fees[j];
+            totalFee += fee;
+        }
+        ICrosschainDeployAdapter(crosschainDeployContractAddress).deploy{value: totalFee}(
+            deployByteCode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds, fees
+        );
+        console.log("Due to https://github.com/foundry-rs/foundry/issues/3885, we cannot calculate deployed contract address.");
+        if(env == Env.MAINNET) {
+            console.log("You can track deployment progress at https://scan.test.buildwithsygma.com/transfer/<txHash>");
+        }
+        if(env == Env.TESTNET) {
+            console.log("You can track deployment progress at https://scan.buildwithsygma.com/transfer/<txHash>");
+        }
+        // address[] memory contractAddresses = new address[](_chainIds.length);
+        // for (uint256 k = 0; k < _chainIds.length; k++) {
+        //     address contractAddress = ICrosschainDeployAdapter(crosschainDeployContractAddress)
+        //         .computeContractAddressForChain(msg.sender, salt, isUniquePerChain, _chainIds[k]);
+        //     contractAddresses[k] = contractAddress;
+        // }
+        resetDeploymentNetworks();
+        // return contractAddresses;
+    }
+
+    // empties the deployment networks added so far. Note that this won't change the contract string.
+    function resetDeploymentNetworks() public {
+        // purge the deployment targets now.
+        delete _chainIds;
+        delete _constructorArgs;
+        delete _domainIds;
+        delete _initDatas;
+    }
+
+    // resets the static salt
+    function resetSalt() public {
+        _staticSalt = 0x00000000000000000000;
+    }
+
+    // sets the static salt
+    function setSalt(bytes32 salt) public {
+        _staticSalt = salt;
+    }
+
+    // returns a pseudorandom bytes32 for salt *if* _staticSalt is not set.
+    function generateSalt() public returns (bytes32) {
+        require(
+            _staticSalt == 0x00000000000000000000,
+            "Static salt is set. Use `setSalt` to override it, or use resetSalt to reset it."
+        );
+        _randomCounter++;
+        return keccak256(abi.encodePacked(block.prevrandao, block.timestamp, msg.sender, _randomCounter));
+    }
+
+    // check that the user has added deployment networks by calling `addDeploymentNetwork`
+    modifier hasDeploymentNetworks() {
+        uint256 deploymentNetworksCount = _domainIds.length;
+        require(deploymentNetworksCount > 0, "Need to add deployment networks. Use `addDeploymentNetwork` first");
+        _;
+    }
+
+    /**
+     * @notice Computes the address where the contract will be deployed on this chain.
+     *     @param sender Address that requested deploy.
+     *     @param salt Entropy for contract address generation.
+     *     @param isUniquePerChain True to have unique addresses on every chain.
+     *     @param deploymentTarget the name of the network onto which to deploy the chain.
+     *     @return Address where the contract will be deployed on this chain.
+     */
+    function computeAddressForChain(address sender, bytes32 salt, bool isUniquePerChain, string memory deploymentTarget)
+        external
+        returns (address)
+    {
+        NetworkIds memory networkIds = _convertDeploymentTargetToNetworkIds(deploymentTarget);
+
+        return ICrosschainDeployAdapter(crosschainDeployContractAddress).computeContractAddressForChain(
+            sender, salt, isUniquePerChain, networkIds.InternalDomainId
+        );
+    }
+
+    /**
+     * This is a function we only need for tests.
+     * TODO: Figure out a safer way of keeping this visible.
+     */
+    function setCrosschainDeployContractAddress(address _crosschainDeployContractAddress) public {
+        crosschainDeployContractAddress = _crosschainDeployContractAddress;
+    }
+}

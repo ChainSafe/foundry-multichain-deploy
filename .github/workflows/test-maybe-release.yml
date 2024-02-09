@@ -36,7 +36,7 @@ jobs:
 
       - name: Run Forge tests
         run: |
-          forge test --no-match-test Integration -vvv
+          forge test -vvv
         id: test
 
   maybe-release:

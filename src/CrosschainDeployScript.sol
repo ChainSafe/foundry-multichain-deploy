@@ -156,7 +156,6 @@ contract CrosschainDeployScript is Script {
             contractBytecode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds, fees
         );
         vm.stopBroadcast();
-        console.log("Due to https://github.com/foundry-rs/foundry/issues/3885, we cannot calculate deployed contract address.");
         if(env == Env.TESTNET) {
             console.log("You can track deployment progress at https://scan.test.buildwithsygma.com/transfer/<txHash>");
         }

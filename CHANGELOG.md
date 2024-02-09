@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/ChainSafe/foundry-multichain-deploy/compare/v0.1.1...v0.1.2) (2024-02-09)
+
+
+### Bug Fixes
+
+* update readme ([#12](https://github.com/ChainSafe/foundry-multichain-deploy/issues/12)) ([fda2ed2](https://github.com/ChainSafe/foundry-multichain-deploy/commit/fda2ed2edd02f1da68e49b367731bc135c494d0b))
+
 ## [0.1.1](https://github.com/ChainSafe/foundry-multichain-deploy/compare/v0.1.0...v0.1.1) (2024-02-09)
 
 

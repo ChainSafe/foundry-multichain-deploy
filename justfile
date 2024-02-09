@@ -11,12 +11,7 @@ fmt:
 
 # run unit tests
 test:
-    forge test --no-match-test Integration
-
-# run integration tests, needs --fork-url
-integration-test:
-    set -x
-    forge test --mt Integration --fork-url $INTEGRATION_FORK_URL -vvv
+    forge test
 
 # watches the directory for changes and rebuilds.
 watch-build:

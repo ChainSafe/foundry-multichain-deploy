@@ -42,11 +42,12 @@ contract CrosschainDeployScript is Script {
     bytes[] private _initDatas;
     // store the chain ids
     uint256[] private _chainIds;
+    bytes private contractBytecode;
 
     uint8 private _randomCounter;
 
     // use this to store a static value for the salt, one that the user can override using `setSalt`. If set to _anything_ other than 0x00000000000000000000, this will be used as the salt.
-    bytes32 private _staticSalt = 0x00000000000000000000;
+    bytes32 private salt = 0x00000000000000000000;
 
     /**
      * @notice Constructor, takes the contract name.
@@ -59,6 +60,7 @@ contract CrosschainDeployScript is Script {
         _stringToNetworkIds["mumbai"] = NetworkIds(7, 80001, Env.TESTNET);
         _stringToNetworkIds["arbitrum-sepolia"] = NetworkIds(8, 421614, Env.TESTNET);
         _stringToNetworkIds["gnosis-chiado"] = NetworkIds(9, 10200, Env.TESTNET);
+        setSalt(generateSalt());
     }
 
     function _convertDeploymentTargetToNetworkIds(string memory deploymentTarget)
@@ -77,6 +79,17 @@ contract CrosschainDeployScript is Script {
     }
 
     /**
+    * Obtains and stores contract bytecode by artifact path
+    * @param artifactPath Contract name in the form of `ContractFile.sol`, if the name of the contract and the file are the same, or `ContractFile.sol:ContractName` if they are different.
+    */
+    function setContract(string calldata artifactPath) public {
+        contractBytecode = vm.getCode(artifactPath);
+    }
+    function setContractBytecode(bytes calldata _contractBytecode) public {
+        contractBytecode = _contractBytecode;
+    }
+
+    /**
      * This function will take the network, constructor args and initdata and
      * save these to a mapping.
      */
@@ -91,11 +104,35 @@ contract CrosschainDeployScript is Script {
     }
 
     /**
+    * Returns array of bridge fees (one for each deployment target or empty if just current chain deployment) 
+    */
+    function getFees(uint256 gasLimit, bool isUniquePerChain) public view returns(uint256[] memory) {
+        require(contractBytecode.length > 0, "Please use setContract or setContractBytecode first");
+        return ICrosschainDeployAdapter(crosschainDeployContractAddress).calculateDeployFee(
+            contractBytecode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds
+        );
+    }
+
+    /**
+    * Returns total bridge fee 
+    */
+    function getTotalFee(uint256 gasLimit, bool isUniquePerChain) public view returns(uint256) {
+        uint256[] memory fees = getFees(gasLimit, isUniquePerChain);
+        uint256 totalFee;
+        uint256 feesArrayLength = fees.length;
+        for (uint256 j = 0; j < feesArrayLength; j++) {
+            uint256 fee = fees[j];
+            totalFee += fee;
+        }
+        return totalFee;
+    }
+
+    /**
      * @notice this function takes in the contract string, in the form that
      * @notice `forge`'s `getCode` takes it, along with some other parameters and passes
      * @notice it along to the `deploy` function of the `CrossChainDeployAdapter`
      * @notice contract.
-     * @param contractString Contract name in the form of `ContractFile.sol`, if the name of the contract and the file are the same, or `ContractFile.sol:ContractName` if they are different.
+     * @param privateKey private key to sign deploy transaction
      * @param gasLimit Contract deploy and init gas.
      * @param isUniquePerChain True to have unique addresses on every chain.
      *   Users call this function and pass only the function call string as
@@ -103,48 +140,37 @@ contract CrosschainDeployScript is Script {
      *   and the `callData` and `bytesCode` are extracted from it.
      *   and the contract is deployed on the other chains.
      */
-    function deploy(string calldata contractString, uint256 gasLimit, bool isUniquePerChain)
+    function deploy(uint256 privateKey, uint256[] memory fees, uint256 gasLimit, bool isUniquePerChain)
         public
         payable
         hasDeploymentNetworks
+        returns (address[] memory)
     {
-        // We use the contractString to get the bytecode of the contract,
-        // reference: https://book.getfoundry.sh/cheatcodes/get-code
-        bytes memory deployByteCode = vm.getCode(contractString);
-        bytes32 salt;
-        if (_staticSalt == 0x00000000000000000000) {
-            salt = generateSalt();
-        } else {
-            salt = _staticSalt;
-        }
-
-        uint256[] memory fees = ICrosschainDeployAdapter(crosschainDeployContractAddress).calculateDeployFee(
-            deployByteCode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds
-        );
+        require(contractBytecode.length > 0, "Please use setContract or setContractBytecode first");
         uint256 totalFee;
-        uint256 feesArrayLength = fees.length;
-        for (uint256 j = 0; j < feesArrayLength; j++) {
-            uint256 fee = fees[j];
-            totalFee += fee;
+        for (uint256 j = 0; j < fees.length; j++) {
+            totalFee += fees[j];
         }
+        vm.startBroadcast(privateKey);
         ICrosschainDeployAdapter(crosschainDeployContractAddress).deploy{value: totalFee}(
-            deployByteCode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds, fees
+            contractBytecode, gasLimit, salt, isUniquePerChain, _constructorArgs, _initDatas, _domainIds, fees
         );
+        vm.stopBroadcast();
         console.log("Due to https://github.com/foundry-rs/foundry/issues/3885, we cannot calculate deployed contract address.");
-        if(env == Env.MAINNET) {
+        if(env == Env.TESTNET) {
             console.log("You can track deployment progress at https://scan.test.buildwithsygma.com/transfer/<txHash>");
         }
-        if(env == Env.TESTNET) {
+        if(env == Env.MAINNET) {
             console.log("You can track deployment progress at https://scan.buildwithsygma.com/transfer/<txHash>");
         }
-        // address[] memory contractAddresses = new address[](_chainIds.length);
-        // for (uint256 k = 0; k < _chainIds.length; k++) {
-        //     address contractAddress = ICrosschainDeployAdapter(crosschainDeployContractAddress)
-        //         .computeContractAddressForChain(msg.sender, salt, isUniquePerChain, _chainIds[k]);
-        //     contractAddresses[k] = contractAddress;
-        // }
+        address[] memory contractAddresses = new address[](_chainIds.length);
+        for (uint256 k = 0; k < _chainIds.length; k++) {
+            address contractAddress = ICrosschainDeployAdapter(crosschainDeployContractAddress)
+                .computeContractAddressForChain(vm.addr(privateKey), salt, isUniquePerChain, _chainIds[k]);
+            contractAddresses[k] = contractAddress;
+        }
         resetDeploymentNetworks();
-        // return contractAddresses;
+        return contractAddresses;
     }
 
     // empties the deployment networks added so far. Note that this won't change the contract string.
@@ -158,20 +184,16 @@ contract CrosschainDeployScript is Script {
 
     // resets the static salt
     function resetSalt() public {
-        _staticSalt = 0x00000000000000000000;
+        salt = 0x00000000000000000000;
     }
 
     // sets the static salt
-    function setSalt(bytes32 salt) public {
-        _staticSalt = salt;
+    function setSalt(bytes32 _salt) public {
+        salt = _salt;
     }
 
-    // returns a pseudorandom bytes32 for salt *if* _staticSalt is not set.
+    // returns a pseudorandom bytes32 for salt
     function generateSalt() public returns (bytes32) {
-        require(
-            _staticSalt == 0x00000000000000000000,
-            "Static salt is set. Use `setSalt` to override it, or use resetSalt to reset it."
-        );
         _randomCounter++;
         return keccak256(abi.encodePacked(block.prevrandao, block.timestamp, msg.sender, _randomCounter));
     }
@@ -186,19 +208,19 @@ contract CrosschainDeployScript is Script {
     /**
      * @notice Computes the address where the contract will be deployed on this chain.
      *     @param sender Address that requested deploy.
-     *     @param salt Entropy for contract address generation.
+     *     @param deploySalt Entropy for contract address generation.
      *     @param isUniquePerChain True to have unique addresses on every chain.
      *     @param deploymentTarget the name of the network onto which to deploy the chain.
      *     @return Address where the contract will be deployed on this chain.
      */
-    function computeAddressForChain(address sender, bytes32 salt, bool isUniquePerChain, string memory deploymentTarget)
+    function computeAddressForChain(address sender, bytes32 deploySalt, bool isUniquePerChain, string memory deploymentTarget)
         external
         returns (address)
     {
         NetworkIds memory networkIds = _convertDeploymentTargetToNetworkIds(deploymentTarget);
 
         return ICrosschainDeployAdapter(crosschainDeployContractAddress).computeContractAddressForChain(
-            sender, salt, isUniquePerChain, networkIds.InternalDomainId
+            sender, deploySalt, isUniquePerChain, networkIds.InternalDomainId
         );
     }
 

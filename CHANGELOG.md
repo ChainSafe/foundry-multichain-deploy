@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/ChainSafe/foundry-multichain-deploy/compare/v0.1.0...v0.1.1) (2024-02-09)
+
+
+### Bug Fixes
+
+* call broadcast inside script deploy ([#10](https://github.com/ChainSafe/foundry-multichain-deploy/issues/10)) ([362625d](https://github.com/ChainSafe/foundry-multichain-deploy/commit/362625db54fa2cc9f05fa62b6dbbb28634948a48))
+
 ## 0.1.0 (2024-02-09)
 
 

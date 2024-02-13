@@ -10,7 +10,7 @@ See
 [ChainSafe/hardhat-plugin-multichain-deploy]("https://github.com/ChainSafe/hardhat-plugin-multichain-deploy")
 for the Hardhat plugin version.
 
-The plugin uses [Sygma protocol](https://buildwithsygma.com/) to execute deployments. You can find the list of supported networks [here](https://docs.buildwithsygma.com/environments).
+The plugin uses [Sygma protocol](https://buildwithsygma.com/) and [CreateX](https://github.com/pcaversaccio/createx) to execute deployments. You can find the list of supported networks [here](https://docs.buildwithsygma.com/environments).
 
 Please open an issue to report bugs or request featrures. Thank you!
 

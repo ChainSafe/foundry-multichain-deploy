@@ -10,12 +10,13 @@ See
 [ChainSafe/hardhat-plugin-multichain-deploy]("https://github.com/ChainSafe/hardhat-plugin-multichain-deploy")
 for the Hardhat plugin version.
 
-[Sygma protocol](https://buildwithsygma.com/)
+The plugin uses [Sygma protocol](https://buildwithsygma.com/) to execute deployments. You can find the list of supported networks [here](https://docs.buildwithsygma.com/environments).
+
+Please open an issue to report bugs or request featrures. Thank you!
 
 ## Installation
 
-Run `forge install chainsafe/foundry-multichain-deploy` to install this plugin to your foundry project.
-
+Run `forge install chainsafe/foundry-multichain-deploy` to install this plugin to your foundry project. 
 ## Usage
 
 The `CrosschainDeployScript` contract is a foundry "script", which means that it

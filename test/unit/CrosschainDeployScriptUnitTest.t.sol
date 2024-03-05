@@ -171,10 +171,10 @@ contract CrosschainDeployScriptUnitTest is Test {
         _initDatas[0] = abi.encodeWithSignature("inc()");
         _domainIds[0] = 2;
 
-        _deploymentTargets[1] = "goerli";
+        _deploymentTargets[1] = "holesky";
         _constructorArgs[1] = abi.encode(uint256(10));
         _initDatas[1] = abi.encodeWithSignature("add(uint256)", uint256(5));
-        _domainIds[1] = 1;
+        _domainIds[1] = 6;
 
         // loop through these and call `addDeploymentTarget` so that they'll be added in order.
         for (uint8 i = 0; i < _deploymentTargets.length; i++) {

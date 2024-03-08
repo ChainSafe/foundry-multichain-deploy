@@ -53,7 +53,6 @@ contract CrosschainDeployScript is Script {
      * @notice Constructor, takes the contract name.
      */
     constructor() {
-        _stringToNetworkIds["goerli"] = NetworkIds(1, 5, Env.TESTNET);
         _stringToNetworkIds["sepolia"] = NetworkIds(2, 11155111, Env.TESTNET);
         _stringToNetworkIds["cronos-testnet"] = NetworkIds(5, 338, Env.TESTNET);
         _stringToNetworkIds["holesky"] = NetworkIds(6, 17000, Env.TESTNET);

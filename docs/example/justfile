@@ -1,0 +1,27 @@
+set shell:=["bash", "-uc"]
+set dotenv-load
+
+# build the contracts
+build: fmt
+    forge build
+
+# format source
+fmt:
+    forge fmt
+
+# run unit tests
+test: fmt
+    forge test
+
+# watches the directory for changes and rebuilds.
+watch-build:
+    forge build --watch
+
+# Deploys to the given chain using the RPC URL with the provided PRIVATE_KEY. Both need to be set in the .env file.
+deploy:
+    # Check if CHAIN_RPC_URL is set
+    @test -n "${CHAIN_RPC_URL}" || (echo "Error: CHAIN_RPC_URL is not set" >&2 && exit 1)
+    # Check if PRIVATE_KEY is set
+    @test -n "${PRIVATE_KEY}" || (echo "Error: PRIVATE_KEY is not set" >&2 && exit 1)
+    # Deploy to chain
+    forge script script/SampleDeployScript.sol:SampleDeployScript --rpc-url $CHAIN_RPC_URL --broadcast

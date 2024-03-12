@@ -16,14 +16,12 @@ contract CrosschainDeployScriptUnitTest is Test {
     bytes[] _initDatas;
     uint8[] _domainIds;
 
-
     // Deploy the mocked crosschain deploy adapter.
     function setUp() public {
         vm.startBroadcast();
         mockCrosschainDeployAdapter = new MockCrosschainDeployAdapter();
         vm.stopBroadcast();
     }
-
 
     /**
      * This test checks if we are able to deploy to a _mocked_ local contract,
@@ -41,7 +39,7 @@ contract CrosschainDeployScriptUnitTest is Test {
         uint256 fee = 0.0001 ether;
         (address alice, uint256 key) = makeAddrAndKey("alice");
         vm.deal(alice, fee * 2);
-        uint256[] memory fees = new uint[](0);
+        uint256[] memory fees = new uint256[](0);
         crosschainDeployScript.deploy{value: fee}(key, fees, 50000, false);
     }
 
@@ -52,7 +50,7 @@ contract CrosschainDeployScriptUnitTest is Test {
         bytes memory initData = "";
         crosschainDeployScript.addDeploymentTarget("sepolia", constructorArgs, initData);
         (, uint256 key) = makeAddrAndKey("alice");
-        uint256[] memory fees = new uint[](0);
+        uint256[] memory fees = new uint256[](0);
         uint256 fee = 0.0001 ether;
         vm.expectRevert(bytes("Please use setContract or setContractBytecode first"));
         crosschainDeployScript.deploy{value: fee}(key, fees, 50000, false);
@@ -217,5 +215,55 @@ contract CrosschainDeployScriptUnitTest is Test {
         );
         (, uint256 key) = makeAddrAndKey("alice");
         crosschainDeployScript.deploy{value: totalFee}(key, fees, _gasLimit, _isUniquePerChain);
+    }
+
+    // Use `addDeploymentTargetByDomainId` to add targets and deploy with anvil
+    function testAddDeploymentTargetByDomainIdWithArgsAnvil() public {
+        CrosschainDeployScript crosschainDeployScript = new CrosschainDeployScript();
+        crosschainDeployScript.setCrosschainDeployContractAddress(address(mockCrosschainDeployAdapter));
+        bytes memory constructorArgs = abi.encode(uint256(1));
+        bytes memory initData = "";
+        crosschainDeployScript.addDeploymentTargetByDomainId(2, constructorArgs, initData);
+        uint256 fee = 0.0001 ether;
+        bytes memory _deployByteCode = vm.getCode(contractString);
+        crosschainDeployScript.setContractBytecode(_deployByteCode);
+        uint256 _gasLimit = 5000;
+        bool _isUniquePerChain = false;
+        // generate a pseudorandom salt and use `setSalt` so that the same value is used in the contract call.
+        bytes32 _salt = crosschainDeployScript.generateSalt();
+        crosschainDeployScript.setSalt(_salt);
+
+        _constructorArgs = new bytes[](1);
+        _constructorArgs[0] = constructorArgs;
+        _initDatas = new bytes[](1);
+        _initDatas[0] = initData;
+        _domainIds = new uint8[](1);
+        _domainIds[0] = 2;
+        (, uint256 key) = makeAddrAndKey("alice");
+        // expect a `calculateDeployFee` call to the *upstream* contract
+        vm.expectCall(
+            address(mockCrosschainDeployAdapter),
+            abi.encodeCall(
+                mockCrosschainDeployAdapter.calculateDeployFee,
+                (_deployByteCode, _gasLimit, _salt, _isUniquePerChain, _constructorArgs, _initDatas, _domainIds)
+            )
+        );
+        uint256[] memory fees = crosschainDeployScript.getFees(_gasLimit, _isUniquePerChain);
+
+        uint256 totalFee;
+        uint256 feesArrayLength = fees.length;
+        for (uint256 j = 0; j < feesArrayLength; j++) {
+            totalFee += fees[j];
+        }
+
+        // expect a `deploy` call to the *upstream* contract
+        vm.expectCall(
+            address(mockCrosschainDeployAdapter),
+            abi.encodeCall(
+                mockCrosschainDeployAdapter.deploy,
+                (_deployByteCode, _gasLimit, _salt, _isUniquePerChain, _constructorArgs, _initDatas, _domainIds, fees)
+            )
+        );
+        crosschainDeployScript.deploy{value: fee}(key, fees, _gasLimit, _isUniquePerChain);
     }
 }

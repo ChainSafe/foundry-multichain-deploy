@@ -13,7 +13,7 @@ import {ICrosschainDeployAdapter} from "./interfaces/CrosschainDeployAdapterInte
 contract CrosschainDeployScript is Script {
     // this is the address of the original contract defined in chainsafe/hardhat-plugin-multichain-deploy
     // this address is the same across all chains
-    address private crosschainDeployContractAddress = 0x85d62AD850B322152BF4ad9147bfBF097DA42217;
+    address private crosschainDeployContractAddress = 0xD72f1165751c3B9C5952B19596A36354ac30FdBd;
 
     enum Env {
         UNKNOWN,

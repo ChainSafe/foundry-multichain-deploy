@@ -23,11 +23,7 @@ contract MockCrosschainDeployAdapter {
      * @notice Computes the address where the contract will be deployed on specified chain.
      *     @return Address where the contract will be deployed on specified chain.
      */
-    function computeContractAddressForChain(address, bytes32, bool, uint256)
-        external
-        pure
-        returns (address)
-    {
+    function computeContractAddressForChain(address, bytes32, bool, uint256) external pure returns (address) {
         address newAddress;
         return newAddress;
     }
@@ -35,15 +31,11 @@ contract MockCrosschainDeployAdapter {
     /**
      * @notice Returns total amount of native currency needed for a deploy request.
      */
-    function calculateDeployFee(
-        bytes calldata,
-        uint256,
-        bytes32,
-        bool,
-        bytes[] memory,
-        bytes[] memory,
-        uint8[] memory
-    ) external pure returns (uint256[] memory fees) {
+    function calculateDeployFee(bytes calldata, uint256, bytes32, bool, bytes[] memory, bytes[] memory, uint8[] memory)
+        external
+        pure
+        returns (uint256[] memory fees)
+    {
         fees = new uint256[](4);
         return fees;
     }

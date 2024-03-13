@@ -30,6 +30,7 @@ contract CrosschainDeployScript is Script {
     // given a string, obtain the domain ID;
     // https://www.notion.so/chainsafe/Testnet-deployment-0483991cf1ac481593d37baf8d48712a
     mapping(string => NetworkIds) private _stringToNetworkIds;
+    mapping(uint8 => string) private _domainIdToDeploymentTargets;
 
     Env env = Env.UNKNOWN;
 
@@ -57,13 +58,18 @@ contract CrosschainDeployScript is Script {
      * @notice Constructor, takes the contract name.
      */
     constructor() {
-        _stringToNetworkIds["sepolia"] = NetworkIds(2, 11155111, Env.TESTNET);
-        _stringToNetworkIds["cronos-testnet"] = NetworkIds(5, 338, Env.TESTNET);
-        _stringToNetworkIds["holesky"] = NetworkIds(6, 17000, Env.TESTNET);
-        _stringToNetworkIds["mumbai"] = NetworkIds(7, 80001, Env.TESTNET);
-        _stringToNetworkIds["arbitrum-sepolia"] = NetworkIds(8, 421614, Env.TESTNET);
-        _stringToNetworkIds["gnosis-chiado"] = NetworkIds(9, 10200, Env.TESTNET);
+        _addNetwork("sepolia", 2, 11155111, Env.TESTNET);
+        _addNetwork("cronos-testnet", 5, 338, Env.TESTNET);
+        _addNetwork("holesky", 6, 17000, Env.TESTNET);
+        _addNetwork("mumbai", 7, 80001, Env.TESTNET);
+        _addNetwork("arbitrum-sepolia", 8, 421614, Env.TESTNET);
+        _addNetwork("gnosis-chiado", 9, 10200, Env.TESTNET);
         setSalt(generateSalt());
+    }
+
+    function _addNetwork(string memory deploymentTarget, uint8 domainId, uint256 chainId, Env environ) private {
+        _stringToNetworkIds[deploymentTarget] = NetworkIds(domainId, chainId, environ);
+        _domainIdToDeploymentTargets[domainId] = deploymentTarget;
     }
 
     function _convertDeploymentTargetToNetworkIds(string memory deploymentTarget) private returns (NetworkIds memory) {
@@ -79,6 +85,14 @@ contract CrosschainDeployScript is Script {
         uint8 deploymentTargetDomainId = deploymentTargetNetworkIds.InternalDomainId;
         require(deploymentTargetDomainId != 0, "Invalid deployment target");
         return deploymentTargetNetworkIds;
+    }
+
+    /**
+     * Internal function to convert the internal sygma ID to the NetworkId object
+     */
+    function _convertDomainIdToNetworkIds(uint8 internalDomainId) private returns (NetworkIds memory) {
+        string memory deploymentTarget = _domainIdToDeploymentTargets[internalDomainId];
+        return _convertDeploymentTargetToNetworkIds(deploymentTarget);
     }
 
     /**
@@ -101,6 +115,20 @@ contract CrosschainDeployScript is Script {
         public
     {
         NetworkIds memory networkIds = _convertDeploymentTargetToNetworkIds(deploymentTarget);
+        _domainIds.push(networkIds.InternalDomainId);
+        _chainIds.push(networkIds.ChainId);
+        _constructorArgs.push(constructorArgs);
+        _initDatas.push(initData);
+    }
+
+    /**
+     * This function takes the Sygma domain ID and replicates the behaviour of `addDeploymentTarget`.
+     * These functions can be used alternately, depending on developer preference.
+     */
+    function addDeploymentTargetByDomainId(uint8 internalDomainId, bytes memory constructorArgs, bytes memory initData)
+        public
+    {
+        NetworkIds memory networkIds = _convertDomainIdToNetworkIds(internalDomainId);
         _domainIds.push(networkIds.InternalDomainId);
         _chainIds.push(networkIds.ChainId);
         _constructorArgs.push(constructorArgs);

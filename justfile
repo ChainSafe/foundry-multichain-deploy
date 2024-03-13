@@ -2,7 +2,7 @@ set shell:=["bash", "-uc"]
 set dotenv-load
 
 # build the contracts
-build:
+build: fmt
     forge build
 
 # format source
@@ -10,7 +10,7 @@ fmt:
     forge fmt
 
 # run unit tests
-test:
+test: fmt
     forge test
 
 # watches the directory for changes and rebuilds.

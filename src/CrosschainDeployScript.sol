@@ -67,10 +67,12 @@ contract CrosschainDeployScript is Script {
         setSalt(generateSalt());
     }
 
+
     function _addNetwork(string memory deploymentTarget, uint8 domainId, uint256 chainId, Env environ) private {
         _stringToNetworkIds[deploymentTarget] = NetworkIds(domainId, chainId, environ);
         _domainIdToDeploymentTargets[domainId] = deploymentTarget;
     }
+
 
     function _convertDeploymentTargetToNetworkIds(string memory deploymentTarget) private returns (NetworkIds memory) {
         NetworkIds memory deploymentTargetNetworkIds = _stringToNetworkIds[deploymentTarget];
@@ -88,6 +90,7 @@ contract CrosschainDeployScript is Script {
     }
 
     /**
+
      * Internal function to convert the internal sygma ID to the NetworkId object
      */
     function _convertDomainIdToNetworkIds(uint8 internalDomainId) private returns (NetworkIds memory) {
@@ -96,6 +99,7 @@ contract CrosschainDeployScript is Script {
     }
 
     /**
+
      * Obtains and stores contract bytecode by artifact path
      * @param artifactPath Contract name in the form of `ContractFile.sol`, if the name of the contract and the file are the same, or `ContractFile.sol:ContractName` if they are different.
      */
@@ -122,6 +126,7 @@ contract CrosschainDeployScript is Script {
     }
 
     /**
+
      * This function takes the Sygma domain ID and replicates the behaviour of `addDeploymentTarget`.
      * These functions can be used alternately, depending on developer preference.
      */

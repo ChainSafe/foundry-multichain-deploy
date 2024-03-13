@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.0](https://github.com/ChainSafe/foundry-multichain-deploy/compare/v0.1.2...v0.2.0) (2024-03-13)
+
+
+### Features
+
+* add `addDeploymentTargetByDomainId` ([#23](https://github.com/ChainSafe/foundry-multichain-deploy/issues/23)) ([74bf2ef](https://github.com/ChainSafe/foundry-multichain-deploy/commit/74bf2ef293dc97dc36031c45aa2ba5bf6a6c3ca2))
+
+
+### Bug Fixes
+
+* remove deprecated goerli network ([#21](https://github.com/ChainSafe/foundry-multichain-deploy/issues/21)) ([a2a2fe2](https://github.com/ChainSafe/foundry-multichain-deploy/commit/a2a2fe23425e7bc5ce5239be4fa672497b6afeac))
+* update adapter address ([#22](https://github.com/ChainSafe/foundry-multichain-deploy/issues/22)) ([a48aa2c](https://github.com/ChainSafe/foundry-multichain-deploy/commit/a48aa2ccd513d5ddecc6ecd79a77e09170afac23)), closes [#16](https://github.com/ChainSafe/foundry-multichain-deploy/issues/16)
+
 ## [0.1.2](https://github.com/ChainSafe/foundry-multichain-deploy/compare/v0.1.1...v0.1.2) (2024-02-09)
 
 

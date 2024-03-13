@@ -58,20 +58,18 @@ contract CrosschainDeployScript is Script {
      * @notice Constructor, takes the contract name.
      */
     constructor() {
-        _stringToNetworkIds["sepolia"] = NetworkIds(2, 11155111, Env.TESTNET);
-        _stringToNetworkIds["cronos-testnet"] = NetworkIds(5, 338, Env.TESTNET);
-        _stringToNetworkIds["holesky"] = NetworkIds(6, 17000, Env.TESTNET);
-        _stringToNetworkIds["mumbai"] = NetworkIds(7, 80001, Env.TESTNET);
-        _stringToNetworkIds["arbitrum-sepolia"] = NetworkIds(8, 421614, Env.TESTNET);
-        _stringToNetworkIds["gnosis-chiado"] = NetworkIds(9, 10200, Env.TESTNET);
-
-        _domainIdToDeploymentTargets[2] = "sepolia";
-        _domainIdToDeploymentTargets[5] = "cronos-testnet";
-        _domainIdToDeploymentTargets[6] = "holesky";
-        _domainIdToDeploymentTargets[7] = "mumbai";
-        _domainIdToDeploymentTargets[8] = "arbitrum-sepolia";
-        _domainIdToDeploymentTargets[9] = "gnosis-chiado";
+        _addNetwork("sepolia", 2, 11155111, Env.TESTNET);
+        _addNetwork("cronos-testnet", 5, 338, Env.TESTNET);
+        _addNetwork("holesky", 6, 17000, Env.TESTNET);
+        _addNetwork("mumbai", 7, 80001, Env.TESTNET);
+        _addNetwork("arbitrum-sepolia", 8, 421614, Env.TESTNET);
+        _addNetwork("gnosis-chiado", 9, 10200, Env.TESTNET);
         setSalt(generateSalt());
+    }
+
+    function _addNetwork(string memory deploymentTarget, uint8 domainId, uint256 chainId, Env environ) private {
+        _stringToNetworkIds[deploymentTarget] = NetworkIds(domainId, chainId, environ);
+        _domainIdToDeploymentTargets[domainId] = deploymentTarget;
     }
 
     function _convertDeploymentTargetToNetworkIds(string memory deploymentTarget) private returns (NetworkIds memory) {

@@ -24,4 +24,4 @@ deploy:
     # Check if PRIVATE_KEY is set
     @test -n "${PRIVATE_KEY}" || (echo "Error: PRIVATE_KEY is not set" >&2 && exit 1)
     # Deploy to chain
-    forge script script/SampleDeployScript.sol:SampleDeployScript --rpc-url $CHAIN_RPC_URL --broadcast
+    forge script script/Counter.s.sol:CounterScript --rpc-url $CHAIN_RPC_URL --broadcast

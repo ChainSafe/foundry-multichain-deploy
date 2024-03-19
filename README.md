@@ -16,4 +16,4 @@ Check the [Documentation](docs/Documentation.md) for instructions on installatio
 
 ## Contributing
 
-Please open an issue to report bugs or request featrures. Contributions are welcome Thank you!
+Please open an issue to report bugs or request featrures. Contributions are welcome. Thank you!

@@ -72,7 +72,7 @@ contract and broadcasts them (thanks to the `--broadcast` flag).
 >
 > Source code verification doesn't work out of the box. You can run verification in [separate command](https://book.getfoundry.sh/forge/deploying#verifying-a-pre-existing-contract)
 
-For more details, read [USAGE.md](USAGE.md).
+For more details, read [USAGE.md](./USAGE.md).
 
 ### Encoding Arguments
 

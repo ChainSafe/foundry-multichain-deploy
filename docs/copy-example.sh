@@ -18,7 +18,7 @@ forge init --no-commit --force .
 # Run forge install
 forge install --no-commit git@github.com:ChainSafe/foundry-multichain-deploy.git
 cp $orig_dir/example/src/Counter.sol src/Counter.sol
-cp $orig_dir/example/script/Counter.s.sol src/Counter.s.sol
+cp $orig_dir/example/script/Counter.s.sol script/Counter.s.sol
 cp $orig_dir/example/test/Counter.t.sol test/Counter.t.sol
 # Run forge build
 forge build

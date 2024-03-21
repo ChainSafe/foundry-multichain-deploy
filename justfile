@@ -13,6 +13,13 @@ fmt:
 test: fmt
     forge test
 
+# Copies the example in docs/example and sets it up for you
+copy-example:
+    cd docs && ./copy-example.sh 
+
+clean-examples:
+    rm -rf $HOME/multichain-examples
+
 # watches the directory for changes and rebuilds.
 watch-build:
     forge build --watch

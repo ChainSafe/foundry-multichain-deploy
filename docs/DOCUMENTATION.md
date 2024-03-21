@@ -21,7 +21,7 @@ import {CrosschainDeployScript} from "foundry-multichain-deploy/CrosschainDeploy
 
 > **NOTE**:
 >
-> This is a short writeup about how to use it. For details and a working folder setup, checkout [EXAMPLE.md](example/EXAMPLE.md)
+> This is a short writeup about how to use it. For details and a working folder setup, checkout [example/EXAMPLE.md](./example/EXAMPLE.md)
 
 The `CrosschainDeployScript` contract is a foundry "script", which means that it
 is not deployed onto the blockchain. It provides a few helper methods
@@ -50,7 +50,7 @@ contract CounterScript is CrosschainDeployScript {
         // script
         // you can use `forge inspect Counter gasEstimates` to get contract
         // creation but add at least 100k buffer for bridge execution
-        uint256 destinationGasLimit = 200000;
+        uint256 destinationGasLimit = 500000;
         uint256[] memory fees = this.getFees(destinationGasLimit, false);
         uint256 totalFee = this.getTotalFee(destinationGasLimit, false);
         // NOTE: Make sure you set the PRIVATE_KEY envvar.
@@ -72,7 +72,7 @@ contract and broadcasts them (thanks to the `--broadcast` flag).
 >
 > Source code verification doesn't work out of the box. You can run verification in [separate command](https://book.getfoundry.sh/forge/deploying#verifying-a-pre-existing-contract)
 
-For more details, read [USAGE.md](./USAGE.md).
+For more details, read [example/EXAMPLE.md](./example/EXAMPLE.md).
 
 ### Encoding Arguments
 
@@ -99,4 +99,4 @@ To learn more, check out the ways you can use `abi.encode` and
 
 ## Development on the plugin
 
-Contributions are always welcome! If you're interested, checkout [DEVELOPMENT.md](DEVELOPMENT.md) for more information about development.
+Contributions are always welcome! If you're interested, checkout [DEVELOPMENT.md](./DEVELOPMENT.md) for more information about development.

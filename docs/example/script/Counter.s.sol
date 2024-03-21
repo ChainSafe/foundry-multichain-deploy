@@ -16,7 +16,7 @@ contract CounterScript is CrosschainDeployScript {
         // there is no way to estimate gas cost of deploying contract inside script
         // you can use `forge inspect Counter gasEstimates` to get contract
         // creation but add at least 100k buffer for bridge execution
-        uint256 destinationGasLimit = 200000;
+        uint256 destinationGasLimit = 500000;
         uint256[] memory fees = this.getFees(destinationGasLimit, false);
         uint256 totalFee = this.getTotalFee(destinationGasLimit, false);
         // NOTE: Make sure you set the PRIVATE_KEY envvar.
